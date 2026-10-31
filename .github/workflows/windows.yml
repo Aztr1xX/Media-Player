@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Qt 6.8 LTS + MinGW
         uses: jurplel/install-qt-action@v4
@@ -59,24 +59,28 @@ jobs:
           Copy-Item README.md dist\
 
       - name: Self-test on the packaged app (software OpenGL on the runner)
-        continue-on-error: true
         shell: pwsh
         run: |
-          .\dist\ffmpeg.exe -hide_banner -loglevel error -y -f lavfi -i "testsrc2=size=1280x720:rate=30:duration=30" -f lavfi -i "sine=frequency=440:duration=30" -c:v libx264 -g 60 -pix_fmt yuv420p -c:a aac -shortest selftest-clip.mp4
+          # two clips in their own folder, so "next file in folder" has somewhere to go
+          New-Item -ItemType Directory selftest-media | Out-Null
+          foreach ($n in 1, 2) {
+            .\dist\ffmpeg.exe -hide_banner -loglevel error -y -f lavfi -i "testsrc2=size=1280x720:rate=30:duration=30" -f lavfi -i "sine=frequency=440:duration=30" -c:v libx264 -g 60 -pix_fmt yuv420p -c:a aac -shortest "selftest-media\clip $n.mp4"
+          }
           $env:QT_OPENGL = "software"
-          $p = Start-Process -FilePath dist\Take.exe -ArgumentList '--selftest','selftest-clip.mp4','--screenshot','selftest.png' -Wait -PassThru
+          $p = Start-Process -FilePath dist\Take.exe -ArgumentList '--selftest','"selftest-media\clip 1.mp4"','--screenshot','selftest.png' -Wait -PassThru
           if (Test-Path selftest.png.log) { Get-Content selftest.png.log }
           exit $p.ExitCode
 
       - name: Upload app
-        uses: actions/upload-artifact@v4
+        if: always()
+        uses: actions/upload-artifact@v5
         with:
           name: Take-windows-x64
           path: dist
 
       - name: Upload self-test screenshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: selftest-results
           path: |
