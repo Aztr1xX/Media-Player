@@ -1,4 +1,5 @@
 #pragma once
+#include <QThreadPool>
 #include <QColor>
 #include <QImage>
 #include <QPointer>
@@ -60,6 +61,7 @@ class ScopeItem : public QQuickPaintedItem
 
 public:
     explicit ScopeItem(QQuickItem *parent = nullptr);
+    ~ScopeItem() override;
     void paint(QPainter *p) override;
 
     MpvObject *source() const { return m_source; }
@@ -84,6 +86,9 @@ private:
     int m_mode = 0;
     bool m_active = false;
     QTimer m_timer;
+    QThreadPool m_pool;          // one background job at a time: grab + draw
+    bool m_busy = false;
+    int m_tick = 0;
     QImage m_frame, m_scope;
     double m_lastPos = -1;
 };

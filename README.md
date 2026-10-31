@@ -49,8 +49,9 @@ Opening another file from Explorer while Slate is open reuses the same window
   Right-click a clip to compare it side by side with the current one.
 - **Media info**: codec, resolution, real frame rate (flags variable frame rate, which causes
   audio drift in editors), colour and HDR, bitrate, and loudness in LUFS against YouTube's −14 LUFS.
-- **Scopes and audio meter**: luma waveform, RGB parade, histogram and vectorscope, plus a live
-  left/right peak meter. Listen to the left or right channel alone to check each mic.
+- **Scopes**: luma waveform, RGB parade, histogram and vectorscope (lighter while playing, so playback stays smooth).
+- **Audio levels** tab: a live left/right peak meter and the clip's loudness. Listen to the left or
+  right channel alone to check each mic.
 - **Crop guide** (G, or the button by the speed control): a 9:16, 4:5 or 1:1 frame over the picture,
   draggable sideways, to see if a shot works as a Short. Right-click the button to pick the ratio.
 - **Zoom into the picture**: Ctrl+scroll zooms at the pointer, drag to pan, Z toggles 200% / fit.
@@ -76,7 +77,7 @@ Opening another file from Explorer while Slate is open reuses the same window
 | Ctrl+Shift+S | Save current frame as PNG |
 | PgUp / PgDn | Previous / next clip in the folder |
 | Ctrl+= / Ctrl+- / Ctrl+0 | Zoom the timeline in / out / show all |
-| Alt+1…5 | Markers, clips, info, transcript, scopes |
+| Alt+1…6 | Markers, clips, info, transcript, scopes, audio levels |
 | H | Hide the side panel; F or double-click: full screen |
 | Ctrl+K | Search all actions; Ctrl+, opens Settings |
 

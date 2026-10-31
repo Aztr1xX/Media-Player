@@ -3,6 +3,8 @@
 #include "mpvobject.h"
 
 #include <QPainter>
+#include <QPointer>
+#include <QGuiApplication>
 #include <QPainterPath>
 #include <QtMath>
 #include <algorithm>
@@ -60,6 +62,7 @@ void WaveformItem::paint(QPainter *p)
 ScopeItem::ScopeItem(QQuickItem *parent) : QQuickPaintedItem(parent)
 {
     m_timer.setInterval(200);
+    m_pool.setMaxThreadCount(1);
     connect(&m_timer, &QTimer::timeout, this, &ScopeItem::refresh);
     connect(this, &QQuickItem::widthChanged, this, [this] { m_lastPos = -1; });
 }
@@ -98,12 +101,35 @@ void ScopeItem::refresh()
     // Paused on the same frame: nothing new to measure.
     if (m_source->paused() && qAbs(m_source->position() - m_lastPos) < 1e-6)
         return;
-    const QImage f = m_source->grabFrame(360);
-    if (f.isNull()) return;
+    // While playing, twice a second is plenty and keeps playback smooth.
+    if (!m_source->paused() && (++m_tick % 3) != 0)
+        return;
+    if (m_busy) return;
+    auto grab = m_source->frameGrabber();
+    if (!grab) return;
+    m_busy = true;
     m_lastPos = m_source->position();
-    m_frame = f;
-    m_scope = render(m_frame, m_mode, QSize(int(width()), int(height())));
-    update();
+    const int mode = m_mode;
+    const QSize size{ int(width()), int(height()) };
+    QPointer<ScopeItem> self(this);
+    // Grabbing and measuring a frame is the expensive part: do it off the UI thread.
+    m_pool.start([self, grab, mode, size] {
+        const QImage f = grab(360);
+        const QImage scope = f.isNull() ? QImage() : ScopeItem::render(f, mode, size);
+        QMetaObject::invokeMethod(qApp, [self, f, scope, mode] {
+            if (!self) return;
+            self->m_busy = false;
+            if (f.isNull()) return;
+            self->m_frame = f;
+            self->m_scope = mode == self->m_mode ? scope : ScopeItem::render(f, self->m_mode, QSize(int(self->width()), int(self->height())));
+            self->update();
+        }, Qt::QueuedConnection);
+    });
+}
+
+ScopeItem::~ScopeItem()
+{
+    m_pool.waitForDone();
 }
 
 void ScopeItem::paint(QPainter *p)

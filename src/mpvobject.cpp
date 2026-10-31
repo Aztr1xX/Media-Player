@@ -621,6 +621,20 @@ bool MpvObject::copyFrame()
 QImage MpvObject::grabFrame(int maxWidth) const
 {
     if (!m_mpv || !m_loaded || !m_hasVideo) return {};
+    return grabFrom(m_mpv, maxWidth);
+}
+
+std::function<QImage(int)> MpvObject::frameGrabber() const
+{
+    // The lambda keeps mpv alive on its own, so it can run on a worker thread even if this
+    // item goes away meanwhile. mpv's client API is thread-safe.
+    std::shared_ptr<MpvCore> core = cores().value(const_cast<MpvObject *>(this));
+    if (!core || !m_loaded || !m_hasVideo) return {};
+    return [core](int maxWidth) { return core->mpv ? MpvObject::grabFrom(core->mpv, maxWidth) : QImage(); };
+}
+
+QImage MpvObject::grabFrom(mpv_handle *m_mpv, int maxWidth)
+{
     const char *args[] = { "screenshot-raw", "video", nullptr };
     mpv_node res;
     if (mpv_command_ret(m_mpv, args, &res) < 0) return {};

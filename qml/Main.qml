@@ -249,7 +249,8 @@ ApplicationWindow {
         { id: "tabClips", category: "View", name: "Show clips in folder", keys: ["Alt+2"], run: () => showTab(1) },
         { id: "tabInfo", category: "View", name: "Show media info", keys: ["Alt+3"], run: () => showTab(2) },
         { id: "tabTranscript", category: "View", name: "Show transcript", keys: ["Alt+4"], run: () => showTab(3) },
-        { id: "tabScopes", category: "View", name: "Show scopes and audio meter", keys: ["Alt+5"], run: () => showTab(4) },
+        { id: "tabScopes", category: "View", name: "Show video scopes", keys: ["Alt+5"], run: () => showTab(4) },
+        { id: "tabAudio", category: "View", name: "Show audio levels", keys: ["Alt+6"], run: () => showTab(5) },
         { id: "palette", category: "View", name: "Search actions", keys: ["Ctrl+K"], run: () => palette.open() },
         { id: "shortcuts", category: "View", name: "Keyboard shortcuts", keys: ["?"], run: () => settingsDialog.openAt(4) },
         { id: "settings", category: "View", name: "Settings", keys: ["Ctrl+,"], run: () => settingsDialog.openAt(0) }
@@ -666,13 +667,14 @@ ApplicationWindow {
                                     { icon: "list", tip: "Clips in this folder", keys: "Alt+2", badge: App.queue.length > 1 ? App.queue.length : 0 },
                                     { icon: "info", tip: "Media info", keys: "Alt+3", badge: Media.probe.vfr === true ? -1 : 0 },
                                     { icon: "transcript", tip: "Transcript", keys: "Alt+4", badge: 0 },
-                                    { icon: "scope", tip: "Scopes and audio meter", keys: "Alt+5", badge: 0 }
+                                    { icon: "scope", tip: "Video scopes", keys: "Alt+5", badge: 0 },
+                                    { icon: "audio-track", tip: "Audio levels", keys: "Alt+6", badge: 0 }
                                 ]
                                 delegate: AbstractButton {
                                     id: tabBtn
                                     required property var modelData
                                     required property int index
-                                    width: 56; height: 34
+                                    width: 50; height: 34
                                     focusPolicy: Qt.NoFocus
                                     hoverEnabled: true
                                     onClicked: win.sideTab = index
@@ -706,6 +708,7 @@ ApplicationWindow {
                         InfoPanel { mpv: mpv }
                         TranscriptPanel { mpv: mpv; win: win }
                         ScopesPanel { mpv: mpv; shown: side.visible && win.sideTab === 4 }
+                        AudioPanel { mpv: mpv; shown: side.visible && win.sideTab === 5 }
                     }
                 }
             }

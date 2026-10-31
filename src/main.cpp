@@ -265,6 +265,7 @@ public:
             { QStringLiteral("03-info"), [this] { call("showTab", 2); }, 800 },
             { QStringLiteral("04-transcript"), [this] { call("showTab", 3); }, 800 },
             { QStringLiteral("05-scopes"), [this] { if (auto *mpv = m_win->findChild<MpvObject *>()) mpv->setPaused(false); call("showTab", 4); }, 1500 },
+            { QStringLiteral("05a-audio"), [this] { call("showTab", 5); }, 1500 },
             { QStringLiteral("05b-zoom"), [this] { QMetaObject::invokeMethod(m_win, "toggleZoom"); }, 900 },
             { QStringLiteral("06-palette"), [this] { QMetaObject::invokeMethod(m_win, "toggleZoom"); QMetaObject::invokeMethod(m_win, "openPalette"); }, 800 },
             { QStringLiteral("07-settings"), [this] { QMetaObject::invokeMethod(m_win, "closePalette"); call("openSettings", 0); }, 800 },

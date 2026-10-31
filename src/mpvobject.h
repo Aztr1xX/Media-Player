@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <atomic>
 #include <QImage>
 #include <QQuickFramebufferObject>
@@ -87,6 +88,8 @@ public:
     Q_INVOKABLE void addSubtitle(const QString &file);
     // Copy of the current video frame, scaled to at most maxWidth (for scopes).
     QImage grabFrame(int maxWidth) const;
+    std::function<QImage(int)> frameGrabber() const;     // thread-safe grabber for background work
+    static QImage grabFrom(mpv_handle *mpv, int maxWidth);
     static QString configDir(); // mpv.conf and scripts/ for power users
 
     // Used by the renderer.
