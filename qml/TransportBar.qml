@@ -67,7 +67,6 @@ Item {
             contentItem: Item {
                 Icon {
                     anchors.centerIn: parent
-                    anchors.horizontalCenterOffset: bar.mpv.paused || !bar.mpv.loaded ? 1 : 0
                     name: bar.mpv.paused || !bar.mpv.loaded ? "play" : "pause"
                     size: 20; color: "#0e0f11"
                 }
@@ -163,7 +162,9 @@ Item {
             width: bar.compact ? 64 : 92
             anchors.verticalCenter: parent.verticalCenter
             from: 0; to: 100
+            stepSize: 5; wheelEnabled: true
             value: bar.mpv.volume
+            valueText: bar.mpv.muted ? "Muted" : Math.round(value) + "%"
             onMoved: { bar.mpv.volume = value; if (bar.mpv.muted) bar.mpv.muted = false }
         }
         Item { width: 6; height: 1 }

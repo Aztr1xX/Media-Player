@@ -9,7 +9,7 @@ namespace {
 const QHash<QString, QString> &icons()
 {
     static const QHash<QString, QString> m = {
-        { QStringLiteral("play"), QStringLiteral("F:<path d='M8 5.2v13.6c0 .8.9 1.3 1.6.8l10.4-6.8c.6-.4.6-1.2 0-1.6L9.6 4.4C8.9 3.9 8 4.4 8 5.2z'/>") },
+        { QStringLiteral("play"), QStringLiteral("F:<path d='M6.9 5.2v13.6c0 .8.9 1.3 1.6.8l10.4-6.8c.6-.4.6-1.2 0-1.6L8.5 4.4C7.8 3.9 6.9 4.4 6.9 5.2z'/>") },
         { QStringLiteral("pause"), QStringLiteral("F:<rect x='6.5' y='5' width='3.8' height='14' rx='1'/><rect x='13.7' y='5' width='3.8' height='14' rx='1'/>") },
         { QStringLiteral("frame-back"), QStringLiteral("<path d='M6 6v12'/><path d='M18 6.5v11a.5.5 0 0 1-.8.4l-7.4-5.5a.5.5 0 0 1 0-.8l7.4-5.5a.5.5 0 0 1 .8.4z'/>") },
         { QStringLiteral("frame-fwd"), QStringLiteral("<path d='M18 6v12'/><path d='M6 6.5v11a.5.5 0 0 0 .8.4l7.4-5.5a.5.5 0 0 0 0-.8L6.8 6.1a.5.5 0 0 0-.8.4z'/>") },
@@ -26,7 +26,7 @@ const QHash<QString, QString> &icons()
         { QStringLiteral("fullscreen-exit"), QStringLiteral("<path d='M9 4v5H4'/><path d='M15 4v5h5'/><path d='M9 20v-5H4'/><path d='M15 20v-5h5'/>") },
         { QStringLiteral("sidebar"), QStringLiteral("<rect x='3' y='4.5' width='18' height='15' rx='2'/><path d='M15 4.5v15'/>") },
         { QStringLiteral("search"), QStringLiteral("<circle cx='11' cy='11' r='6.5'/><path d='M20 20l-4.2-4.2'/>") },
-        { QStringLiteral("settings"), QStringLiteral("<circle cx='12' cy='12' r='3'/><path d='M12 2.8l1.6 2.3 2.8-.5.9 2.7 2.6 1.2-.6 2.8 1.9 2.1-1.9 2.1.6 2.8-2.6 1.2-.9 2.7-2.8-.5L12 21.2l-1.6-2.3-2.8.5-.9-2.7-2.6-1.2.6-2.8L2.8 12l1.9-2.1-.6-2.8 2.6-1.2.9-2.7 2.8.5z'/>") },
+        { QStringLiteral("settings"), QStringLiteral("<path d='M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z'/><circle cx='12' cy='12' r='3'/>") },
         { QStringLiteral("open"), QStringLiteral("<path d='M3.5 18.5V6a1.5 1.5 0 0 1 1.5-1.5h4l2 2h6.5A1.5 1.5 0 0 1 19 8v2'/><path d='M3.5 18.5l2.6-7a1.5 1.5 0 0 1 1.4-1h12.8a1 1 0 0 1 .9 1.4l-2.6 6.6H3.5z'/>") },
         { QStringLiteral("file"), QStringLiteral("<path d='M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z'/><path d='M14 3.5V8h4.5'/>") },
         { QStringLiteral("film"), QStringLiteral("<rect x='3.5' y='4.5' width='17' height='15' rx='2'/><path d='M7.5 4.5v15M16.5 4.5v15M3.5 9.5h4M3.5 14.5h4M16.5 9.5h4M16.5 14.5h4'/>") },

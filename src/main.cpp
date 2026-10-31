@@ -232,7 +232,11 @@ public:
         // name, action, delay before the shot
         m_shots = {
             { QStringLiteral("01-review"), [this] { call("showTab", 0); }, 6000 },
-            { QStringLiteral("02-clips"), [this] { call("showTab", 1); }, 2500 },
+            { QStringLiteral("01b-paused-volume-hover"), [this] {
+                  if (auto *mpv = m_win->findChild<MpvObject *>()) mpv->setPaused(true);
+                  QTest::mouseMove(m_win, QPoint(m_win->width() - 94, m_win->height() - 26));
+              }, 1200 },
+            { QStringLiteral("02-clips"), [this] { QTest::mouseMove(m_win, QPoint(600, 300)); call("showTab", 1); }, 2500 },
             { QStringLiteral("03-info"), [this] { call("showTab", 2); }, 800 },
             { QStringLiteral("04-transcript"), [this] { call("showTab", 3); }, 800 },
             { QStringLiteral("05-scopes"), [this] { call("showTab", 4); }, 1500 },
