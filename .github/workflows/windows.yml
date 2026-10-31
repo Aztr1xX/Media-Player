@@ -37,10 +37,12 @@ jobs:
           New-Item -ItemType Directory deps | Out-Null
           gh release download --repo zhongfly/mpv-winbuild --pattern "mpv-dev-lgpl-x86_64-2*.7z" --dir deps
           7z x (Get-ChildItem deps\*.7z | Select-Object -First 1).FullName -odeps\mpv | Out-Null
-          gh release download latest --repo BtbN/FFmpeg-Builds --pattern "ffmpeg-master-latest-win64-gpl.zip" --dir deps
-          7z x deps\ffmpeg-master-latest-win64-gpl.zip -odeps | Out-Null
-          gh release view --repo ggml-org/whisper.cpp --json tagName,assets --jq '.tagName, (.assets[].name)'
-          gh release download --repo ggml-org/whisper.cpp --pattern "whisper-bin-x64.zip" --dir deps
+          gh release download latest --repo BtbN/FFmpeg-Builds --pattern "ffmpeg-master-latest-win64-gpl-shared.zip" --dir deps
+          7z x deps\ffmpeg-master-latest-win64-gpl-shared.zip -odeps | Out-Null
+          # newest whisper.cpp release that actually has Windows binaries attached
+          $wtag = gh api repos/ggml-org/whisper.cpp/releases --jq '[.[] | select(any(.assets[]; .name == "whisper-bin-x64.zip"))][0].tag_name'
+          Write-Host "whisper.cpp release: $wtag"
+          gh release download $wtag --repo ggml-org/whisper.cpp --pattern "whisper-bin-x64.zip" --dir deps
           if (Test-Path deps\whisper-bin-x64.zip) { 7z x deps\whisper-bin-x64.zip -odeps\whisper | Out-Null }
           gh release download --repo yt-dlp/yt-dlp --pattern "yt-dlp.exe" --dir deps
           Get-ChildItem -Recurse deps\whisper | ForEach-Object { $_.FullName }
@@ -65,6 +67,7 @@ jobs:
           $ff = Get-ChildItem -Recurse deps -Filter "ffmpeg.exe" | Select-Object -First 1
           Copy-Item $ff.FullName dist\
           Copy-Item (Join-Path $ff.DirectoryName "ffprobe.exe") dist\
+          Get-ChildItem $ff.DirectoryName -Filter "*.dll" | ForEach-Object { Copy-Item $_.FullName dist\ }
           $wc = Get-ChildItem -Recurse deps\whisper -Filter "whisper-cli.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($wc) {
             Copy-Item $wc.FullName dist\
