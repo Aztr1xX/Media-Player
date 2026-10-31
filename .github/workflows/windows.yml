@@ -1,0 +1,85 @@
+name: Windows build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt 6.8 LTS + MinGW
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.*'
+          arch: win64_mingw
+          tools: 'tools_mingw1310'
+          cache: true
+
+      - name: Put MinGW on PATH
+        shell: pwsh
+        run: |
+          $mingw = Get-ChildItem "$env:IQTA_TOOLS" -Directory -Filter "mingw*" | Select-Object -First 1
+          "$($mingw.FullName)\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+          Write-Host "MinGW: $($mingw.FullName)"
+
+      - name: Download libmpv (LGPL dev build) and FFmpeg
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory deps | Out-Null
+          gh release download --repo zhongfly/mpv-winbuild --pattern "mpv-dev-lgpl-x86_64-2*.7z" --dir deps
+          7z x (Get-ChildItem deps\*.7z | Select-Object -First 1).FullName -odeps\mpv | Out-Null
+          gh release download latest --repo BtbN/FFmpeg-Builds --pattern "ffmpeg-master-latest-win64-gpl.zip" --dir deps
+          7z x deps\ffmpeg-master-latest-win64-gpl.zip -odeps | Out-Null
+          Get-ChildItem -Recurse deps\mpv | Select-Object -First 20 | ForEach-Object { $_.FullName }
+
+      - name: Configure and build
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DMPV_DIR="$PWD/deps/mpv"
+          cmake --build build --parallel
+
+      - name: Unit tests
+        shell: pwsh
+        run: .\build\take_tests.exe
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory dist | Out-Null
+          Copy-Item build\take.exe dist\Take.exe
+          windeployqt --release --qmldir qml --no-translations dist\Take.exe
+          Copy-Item (Get-ChildItem -Recurse deps\mpv -Filter "libmpv-2.dll" | Select-Object -First 1).FullName dist\
+          Copy-Item (Get-ChildItem -Recurse deps -Filter "ffmpeg.exe" | Select-Object -First 1).FullName dist\
+          Copy-Item README.md dist\
+
+      - name: Self-test on the packaged app (software OpenGL on the runner)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          .\dist\ffmpeg.exe -hide_banner -loglevel error -y -f lavfi -i "testsrc2=size=1280x720:rate=30:duration=30" -f lavfi -i "sine=frequency=440:duration=30" -c:v libx264 -g 60 -pix_fmt yuv420p -c:a aac -shortest selftest-clip.mp4
+          $env:QT_OPENGL = "software"
+          $p = Start-Process -FilePath dist\Take.exe -ArgumentList '--selftest','selftest-clip.mp4','--screenshot','selftest.png' -Wait -PassThru
+          if (Test-Path selftest.png.log) { Get-Content selftest.png.log }
+          exit $p.ExitCode
+
+      - name: Upload app
+        uses: actions/upload-artifact@v4
+        with:
+          name: Take-windows-x64
+          path: dist
+
+      - name: Upload self-test screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selftest-results
+          path: |
+            selftest.png
+            selftest.png.log
+          if-no-files-found: ignore
