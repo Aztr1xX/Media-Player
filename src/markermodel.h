@@ -32,6 +32,7 @@ public:
     Q_INVOKABLE void remove(int row);
     Q_INVOKABLE void setNote(int row, const QString &note);
     Q_INVOKABLE void cycleKind(int row);
+    Q_INVOKABLE void setKind(int row, int kind);
     Q_INVOKABLE double timeAt(int row) const;
     Q_INVOKABLE int rowNear(double time, double tolerance) const;
     // Time of the next / previous marker, or -1 when there is none.

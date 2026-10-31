@@ -14,6 +14,8 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTextStream>
+#include <QProcess>
+#include <QKeySequence>
 #include <cmath>
 
 static QString settingsKey(const QString &file)
@@ -153,7 +155,9 @@ void AppController::savePosition(double position, double duration)
 QString AppController::baseOut() const
 {
     const QFileInfo fi(m_current);
-    return fi.absolutePath() + QLatin1Char('/') + fi.completeBaseName();
+    const QString custom = setting(QStringLiteral("exportFolder")).toString();
+    const QString dir = (!custom.isEmpty() && QFileInfo(custom).isDir()) ? custom : fi.absolutePath();
+    return dir + QLatin1Char('/') + fi.completeBaseName();
 }
 
 QString AppController::uniquePath(const QString &wanted)
@@ -322,7 +326,118 @@ QString AppController::frameGrabPath(qint64 frame) const
 
 void AppController::revealInFolder(const QString &path) const
 {
+#ifdef Q_OS_WIN
+    // Opens Explorer with the file selected.
+    QProcess::startDetached(QStringLiteral("explorer.exe"), { QStringLiteral("/select,"), QDir::toNativeSeparators(path) });
+#else
     QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
+#endif
+}
+
+QString AppController::version() const { return QCoreApplication::applicationVersion(); }
+
+bool AppController::isWindows() const
+{
+#ifdef Q_OS_WIN
+    return true;
+#else
+    return false;
+#endif
+}
+
+QVariant AppController::setting(const QString &key, const QVariant &fallback) const
+{
+    QVariant v = QSettings().value(QStringLiteral("prefs/") + key, fallback);
+    // INI-backed settings come back as strings; hand QML the type it asked for.
+    if (fallback.isValid() && v.metaType() != fallback.metaType()) {
+        QVariant c = v;
+        if (c.convert(fallback.metaType())) return c;
+        return fallback;
+    }
+    return v;
+}
+
+QString AppController::keyText(int key, int modifiers) const
+{
+    if (key == Qt::Key_Control || key == Qt::Key_Shift || key == Qt::Key_Alt || key == Qt::Key_Meta || key == 0 || key == Qt::Key_unknown)
+        return {};
+    return QKeySequence(QKeyCombination(Qt::KeyboardModifiers(modifiers & (Qt::ControlModifier | Qt::ShiftModifier | Qt::AltModifier | Qt::MetaModifier)),
+                                        Qt::Key(key))).toString(QKeySequence::PortableText);
+}
+
+void AppController::setSetting(const QString &key, const QVariant &value)
+{
+    QSettings().setValue(QStringLiteral("prefs/") + key, value);
+}
+
+int AppController::rating(const QString &file) const
+{
+    return QSettings().value(QStringLiteral("rating/") + settingsKey(file), 0).toInt();
+}
+
+void AppController::setRating(const QString &file, int stars)
+{
+    if (file.isEmpty()) return;
+    QSettings s;
+    const QString key = QStringLiteral("rating/") + settingsKey(file);
+    if (stars <= 0) s.remove(key); else s.setValue(key, qBound(1, stars, 5));
+    ++m_ratingsRev;
+    emit ratingsChanged();
+}
+
+void AppController::removeRecent(const QString &file)
+{
+    QSettings s;
+    QStringList r = s.value(QStringLiteral("recent")).toStringList();
+    r.removeAll(file);
+    s.setValue(QStringLiteral("recent"), r);
+    emit recentFilesChanged();
+}
+
+void AppController::clearRecent()
+{
+    QSettings().remove(QStringLiteral("recent"));
+    emit recentFilesChanged();
+}
+
+QString AppController::localPath(const QVariant &v) const
+{
+    if (v.canConvert<QUrl>() && v.toUrl().isLocalFile()) return v.toUrl().toLocalFile();
+    const QString s = v.toString();
+    return s.startsWith(QLatin1String("file:")) ? QUrl(s).toLocalFile() : s;
+}
+
+bool AppController::isSubtitleFile(const QVariant &v) const
+{
+    static const QStringList ext = { QStringLiteral("srt"), QStringLiteral("ass"), QStringLiteral("ssa"), QStringLiteral("vtt"), QStringLiteral("sub") };
+    return ext.contains(QFileInfo(localPath(v)).suffix().toLower());
+}
+
+void AppController::openDefaultAppsSettings() const
+{
+#ifdef Q_OS_WIN
+    // Jump straight to Slate's page in Settings > Apps > Default apps.
+    const bool machine = QSettings(QStringLiteral("HKEY_LOCAL_MACHINE\\Software\\RegisteredApplications"), QSettings::NativeFormat).contains(QStringLiteral("Slate"));
+    QDesktopServices::openUrl(QUrl(machine ? QStringLiteral("ms-settings:defaultapps?registeredAppMachine=Slate")
+                                           : QStringLiteral("ms-settings:defaultapps?registeredAppUser=Slate")));
+#endif
+}
+
+void AppController::openFolder(const QString &path) const
+{
+    QDir().mkpath(path);
+    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+}
+
+QString AppController::mpvConfigDir() const
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/mpv");
+}
+
+QString AppController::exportFolderLabel() const
+{
+    const QString custom = setting(QStringLiteral("exportFolder")).toString();
+    return custom.isEmpty() ? QStringLiteral("Next to the original file") : QDir::toNativeSeparators(custom);
 }
 
 QString AppController::formatTimecode(double seconds, double fps) const

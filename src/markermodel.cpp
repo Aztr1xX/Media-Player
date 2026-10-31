@@ -91,6 +91,15 @@ void MarkerModel::cycleKind(int row)
     save();
 }
 
+void MarkerModel::setKind(int row, int kind)
+{
+    if (row < 0 || row >= m_items.size() || kind < 0 || kind > 2 || m_items[row].kind == kind)
+        return;
+    m_items[row].kind = kind;
+    emit dataChanged(index(row), index(row), { KindRole });
+    save();
+}
+
 double MarkerModel::timeAt(int row) const
 {
     return (row >= 0 && row < m_items.size()) ? m_items.at(row).time : -1;
@@ -201,7 +210,7 @@ QString MarkerModel::toEdl(const QVector<Marker> &items, double fps, const QStri
 {
     // CMX3600-style marker EDL in the layout DaVinci Resolve writes and reads
     // (Timelines > Import > Timeline Markers from EDL).
-    static const char *colours[] = { "ResolveColorBlue", "ResolveColorGreen", "ResolveColorRed" };
+    static const char *colours[] = { "ResolveColorYellow", "ResolveColorGreen", "ResolveColorRed" };
     QString out;
     out += QStringLiteral("TITLE: %1\nFCM: NON-DROP FRAME\n\n").arg(cleanNote(title));
     int n = 1;

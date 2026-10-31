@@ -5,6 +5,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write   # publish the installer as a GitHub release
+
 jobs:
   build:
     runs-on: windows-latest
@@ -36,7 +39,10 @@ jobs:
           7z x (Get-ChildItem deps\*.7z | Select-Object -First 1).FullName -odeps\mpv | Out-Null
           gh release download latest --repo BtbN/FFmpeg-Builds --pattern "ffmpeg-master-latest-win64-gpl.zip" --dir deps
           7z x deps\ffmpeg-master-latest-win64-gpl.zip -odeps | Out-Null
-          Get-ChildItem -Recurse deps\mpv | Select-Object -First 20 | ForEach-Object { $_.FullName }
+          gh release download --repo ggml-org/whisper.cpp --pattern "whisper-bin-x64.zip" --dir deps
+          7z x deps\whisper-bin-x64.zip -odeps\whisper | Out-Null
+          gh release download --repo yt-dlp/yt-dlp --pattern "yt-dlp.exe" --dir deps
+          Get-ChildItem -Recurse deps\whisper | ForEach-Object { $_.FullName }
 
       - name: Configure and build
         shell: pwsh
@@ -55,8 +61,15 @@ jobs:
           Copy-Item build\slate.exe dist\Slate.exe
           windeployqt --release --qmldir qml --no-translations dist\Slate.exe
           Copy-Item (Get-ChildItem -Recurse deps\mpv -Filter "libmpv-2.dll" | Select-Object -First 1).FullName dist\
-          Copy-Item (Get-ChildItem -Recurse deps -Filter "ffmpeg.exe" | Select-Object -First 1).FullName dist\
+          $ff = Get-ChildItem -Recurse deps -Filter "ffmpeg.exe" | Select-Object -First 1
+          Copy-Item $ff.FullName dist\
+          Copy-Item (Join-Path $ff.DirectoryName "ffprobe.exe") dist\
+          $wc = Get-ChildItem -Recurse deps\whisper -Filter "whisper-cli.exe" | Select-Object -First 1
+          Copy-Item $wc.FullName dist\
+          Get-ChildItem $wc.DirectoryName -Filter "*.dll" | ForEach-Object { Copy-Item $_.FullName dist\ -Force }
+          Copy-Item deps\yt-dlp.exe dist\
           Copy-Item README.md dist\
+          Get-ChildItem dist -File | Select-Object Name, Length | Format-Table -AutoSize
 
       - name: Self-test on the packaged app (software OpenGL on the runner)
         shell: pwsh
@@ -71,12 +84,36 @@ jobs:
           if (Test-Path selftest.png.log) { Get-Content selftest.png.log }
           exit $p.ExitCode
 
-      - name: Upload app
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) {
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+            if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          }
+          & $iscc /DAppVersion=1.0.0 /DSourceDir="$PWD\dist" /DOutputDir="$PWD\installer" packaging\windows\slate.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Compress-Archive -Path dist\* -DestinationPath installer\Slate-portable.zip
+          Get-ChildItem installer
+
+      - name: Upload installer
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: Slate-windows-x64
-          path: dist
+          name: Slate-installer
+          path: installer
+          if-no-files-found: ignore
+
+      - name: Publish release (main branch only)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag 2>$null
+          $notes = "Latest build of Slate from commit ${{ github.sha }}. Download Slate-Setup-1.0.0.exe and run it. SmartScreen may warn because the app isn't signed: choose More info, then Run anyway."
+          gh release create latest installer\Slate-Setup-1.0.0.exe installer\Slate-portable.zip --title "Slate (latest build)" --notes "$notes" --target ${{ github.sha }} --latest
 
       - name: Upload self-test screenshot
         if: always()

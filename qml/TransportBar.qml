@@ -1,80 +1,176 @@
 import QtQuick
-import Slate
 import QtQuick.Controls
 import QtQuick.Layouts
+import Slate
 
-
-Rectangle {
+// Timecode, playback controls, review tools and output controls under the timeline.
+Item {
     id: bar
     required property var mpv
-    property bool panelsVisible: true
-    signal togglePanels()
-    signal toggleFullscreen()
-    signal addMarker()
-    signal setIn()
-    signal setOut()
-    signal toggleLoop()
-    signal cycleSpeed(int dir)
-
+    required property var win
+    property bool overlay: false
     implicitHeight: 52
-    color: Theme.panel
-    Rectangle { anchors.top: parent.top; width: parent.width; height: 1; color: Theme.line }
 
-    readonly property bool loopOn: mpv.loopA >= 0
-    readonly property bool canLoop: App.inPoint >= 0 && App.outPoint > App.inPoint
+    function fmt(t) { return mpv.hasVideo && mpv.fps > 0 ? App.formatTimecode(t, mpv.fps) : App.formatClock(t) }
+    readonly property bool compact: width < 900
 
-    function timeText() {
-        if (!mpv.loaded) return "--:--:--:--"
-        return mpv.hasVideo && mpv.fps > 0 ? App.formatTimecode(mpv.position, mpv.fps)
-                                           : App.formatClock(mpv.position) + "." + ("00" + Math.floor((mpv.position % 1) * 1000)).slice(-3)
+    Rectangle { anchors.fill: parent; color: bar.overlay ? "transparent" : Theme.chrome }
+
+    // left: timecode
+    Column {
+        id: tc
+        anchors.left: parent.left; anchors.leftMargin: 14
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 1
+        Text {
+            text: bar.mpv.loaded ? bar.fmt(bar.mpv.position) : (bar.mpv.hasVideo ? "00:00:00:00" : "0:00")
+            color: bar.mpv.loaded ? Theme.ink : Theme.ink3
+            font.pixelSize: 17; font.family: Theme.mono
+        }
+        Text {
+            text: !bar.mpv.loaded ? " " : (bar.mpv.hasVideo && bar.mpv.fps > 0
+                  ? "Frame " + bar.mpv.frame + "  ·  " + App.formatClock(bar.mpv.duration)
+                  : "of " + App.formatClock(bar.mpv.duration))
+            color: Theme.ink3; font.pixelSize: 11; font.family: Theme.mono
+        }
     }
 
-    RowLayout {
-        anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        spacing: 6
+    // centre: transport
+    Row {
+        id: centre
+        anchors.centerIn: parent
+        spacing: 4
 
-        Column {
-            Layout.minimumWidth: 168
-            Text { text: bar.timeText(); color: Theme.ink; font.family: Theme.mono; font.pixelSize: 20 }
-            Text {
-                color: Theme.muted; font.family: Theme.mono; font.pixelSize: 11
-                text: !mpv.loaded ? "nothing loaded"
-                      : (mpv.hasVideo && mpv.fps > 0 ? "frame " + mpv.frame + " · " + mpv.fps.toFixed(3).replace(/\.?0+$/, "") + " fps" : "audio")
-                      + " · " + App.formatClock(mpv.duration)
+        Row {
+            spacing: 2
+            visible: !bar.compact
+            anchors.verticalCenter: parent.verticalCenter
+            Btn { glyph: "in"; tip: "Set In point"; keys: "I"; enabled: bar.mpv.loaded; active: App.inPoint >= 0; onClicked: bar.win.setIn() }
+            Btn { glyph: "out"; tip: "Set Out point"; keys: "O"; enabled: bar.mpv.loaded; active: App.outPoint >= 0; onClicked: bar.win.setOut() }
+            Btn { glyph: "marker"; tip: "Add marker"; keys: "M"; enabled: bar.mpv.loaded; onClicked: bar.win.addMarker() }
+        }
+        Item { width: bar.compact ? 0 : 14; height: 1 }
+        Btn { glyph: "frame-back"; tip: "Previous frame"; keys: ","; enabled: bar.mpv.loaded; anchors.verticalCenter: parent.verticalCenter; onClicked: bar.mpv.stepFrame(-1) }
+        AbstractButton {
+            id: play
+            anchors.verticalCenter: parent.verticalCenter
+            width: 40; height: 40
+            focusPolicy: Qt.NoFocus
+            hoverEnabled: true
+            enabled: bar.mpv.loaded
+            onClicked: { bar.win.rewindRate = 0; bar.mpv.togglePause() }
+            background: Rectangle {
+                radius: 20
+                color: play.down ? "#d9dce1" : (play.hovered ? "#ffffff" : Theme.ink)
+                opacity: play.enabled ? 1 : 0.35
+            }
+            contentItem: Item {
+                Icon {
+                    anchors.centerIn: parent
+                    anchors.horizontalCenterOffset: bar.mpv.paused || !bar.mpv.loaded ? 1 : 0
+                    name: bar.mpv.paused || !bar.mpv.loaded ? "play" : "pause"
+                    size: 20; color: "#0e0f11"
+                }
+            }
+            Tip { visible: play.hovered; text: bar.mpv.paused ? "Play" : "Pause"; keys: "Space" }
+        }
+        Btn { glyph: "frame-fwd"; tip: "Next frame"; keys: "."; enabled: bar.mpv.loaded; anchors.verticalCenter: parent.verticalCenter; onClicked: bar.mpv.stepFrame(1) }
+        Item { width: 14; height: 1 }
+        Btn {
+            anchors.verticalCenter: parent.verticalCenter
+            glyph: "loop"; tip: "Loop In to Out"; keys: "Ctrl+L"
+            enabled: bar.mpv.loaded
+            active: bar.mpv.loopA >= 0
+            onClicked: bar.win.toggleLoop()
+        }
+        Btn {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: !bar.compact
+            glyph: "skip-silence"; tip: bar.win.skipSilence ? "Skipping silences (on)" : "Skip silences"; keys: "Ctrl+Shift+K"
+            enabled: bar.mpv.loaded
+            active: bar.win.skipSilence
+            onClicked: bar.win.toggleSkipSilence()
+        }
+    }
+
+    // right: output
+    Row {
+        anchors.right: parent.right; anchors.rightMargin: 10
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 2
+
+        Btn {
+            id: speedBtn
+            text: (Math.round(bar.mpv.speed * 100) / 100) + "×"
+            tip: "Playback speed"; keys: "[ ]"
+            implicitWidth: 52
+            active: Math.abs(bar.mpv.speed - 1) > 0.001
+            onClicked: speedMenu.popup(speedBtn, 0, -speedMenu.implicitHeight - 4)
+            SMenu {
+                id: speedMenu
+                implicitWidth: 150
+                Repeater {
+                    model: bar.win.speeds
+                    delegate: SMenuItem {
+                        required property double modelData
+                        text: modelData + "×"
+                        checkable: true
+                        checked: Math.abs(bar.mpv.speed - modelData) < 0.001
+                        onTriggered: bar.mpv.speed = modelData
+                    }
+                }
             }
         }
-        IconButton { text: "◀|"; tip: "Previous frame  ( , )"; enabled: mpv.loaded; onClicked: mpv.stepFrame(-1) }
-        IconButton { text: mpv.paused || !mpv.loaded ? "▶" : "❚❚"; primary: true; implicitWidth: 46; tip: "Play / pause  (Space)"; enabled: mpv.loaded; onClicked: mpv.togglePause() }
-        IconButton { text: "|▶"; tip: "Next frame  ( . )"; enabled: mpv.loaded; onClicked: mpv.stepFrame(1) }
-        Rectangle { width: 1; height: 22; color: Theme.line; Layout.leftMargin: 4; Layout.rightMargin: 4 }
-        IconButton {
-            text: (Number.isInteger(mpv.speed) ? mpv.speed.toFixed(1) : String(Math.round(mpv.speed * 100) / 100)) + "×"
-            tip: "Speed. Click to go faster, right-click slower  ( [ ] , = resets )"
-            implicitWidth: 52
-            onClicked: bar.cycleSpeed(1)
-            TapHandler { acceptedButtons: Qt.RightButton; onTapped: bar.cycleSpeed(-1) }
+        Btn {
+            id: tracksBtn
+            glyph: "subtitles"; tip: "Audio and subtitles"
+            enabled: bar.mpv.loaded
+            active: bar.mpv.subtitleTrack > 0
+            onClicked: tracksMenu.popup(tracksBtn, 0, -tracksMenu.implicitHeight - 4)
+            SMenu {
+                id: tracksMenu
+                implicitWidth: 300
+                MenuSeparator { contentItem: Text { text: "AUDIO"; color: Theme.ink3; font.pixelSize: 10; font.letterSpacing: 0.8; leftPadding: 10; topPadding: 4 } }
+                Repeater {
+                    model: bar.mpv.audioTracks
+                    delegate: SMenuItem {
+                        required property var modelData
+                        text: modelData.label || ("Track " + modelData.id)
+                        checkable: true; checked: bar.mpv.audioTrack === modelData.id
+                        onTriggered: bar.mpv.setAudioTrack(modelData.id)
+                    }
+                }
+                MenuSeparator { contentItem: Text { text: "SUBTITLES"; color: Theme.ink3; font.pixelSize: 10; font.letterSpacing: 0.8; leftPadding: 10; topPadding: 6 } }
+                SMenuItem { text: "Off"; checkable: true; checked: bar.mpv.subtitleTrack === 0; onTriggered: bar.mpv.setSubtitleTrack(0) }
+                Repeater {
+                    model: bar.mpv.subtitleTracks
+                    delegate: SMenuItem {
+                        required property var modelData
+                        text: modelData.label || ("Subtitle " + modelData.id)
+                        checkable: true; checked: bar.mpv.subtitleTrack === modelData.id
+                        onTriggered: bar.mpv.setSubtitleTrack(modelData.id)
+                    }
+                }
+                SMenuItem { text: "Load subtitle file…"; glyph: "file"; onTriggered: bar.win.openSubtitleDialog() }
+            }
         }
-        IconButton { text: "Loop"; checkable: false; checked: bar.loopOn; enabled: bar.canLoop || bar.loopOn; tip: "Loop between In and Out  (Ctrl+L)"; onClicked: bar.toggleLoop() }
-        Rectangle { width: 1; height: 22; color: Theme.line; Layout.leftMargin: 4; Layout.rightMargin: 4 }
-        IconButton { text: "In"; tip: "Mark In  (I)"; enabled: mpv.loaded; onClicked: bar.setIn() }
-        IconButton { text: "Out"; tip: "Mark Out  (O)"; enabled: mpv.loaded; onClicked: bar.setOut() }
-        IconButton { text: "+ Marker"; tip: "Add marker at playhead  (M)"; enabled: mpv.loaded; onClicked: bar.addMarker() }
-
-        Item { Layout.fillWidth: true }
-
-        IconButton { text: "Mute"; checked: mpv.muted; tip: "Mute"; onClicked: mpv.muted = !mpv.muted }
-        Slider {
-            id: vol
-            Layout.preferredWidth: 96
-            from: 0; to: 130; value: mpv.volume
-            focusPolicy: Qt.NoFocus
-            onMoved: mpv.volume = value
-            ToolTip.visible: hovered || pressed
-            ToolTip.text: Math.round(value) + "%"
+        Btn {
+            glyph: bar.mpv.muted || bar.mpv.volume === 0 ? "mute" : (bar.mpv.volume < 50 ? "volume-low" : "volume")
+            tip: bar.mpv.muted ? "Unmute" : "Mute"; keys: "Ctrl+M"
+            onClicked: bar.mpv.muted = !bar.mpv.muted
         }
-        IconButton { text: bar.panelsVisible ? "Hide panels" : "Show panels"; tip: "Side panels  (H)"; onClicked: bar.togglePanels() }
-        IconButton { text: "Full screen"; tip: "Full screen  (F, Esc to leave)"; onClicked: bar.toggleFullscreen() }
+        SSlider {
+            width: bar.compact ? 64 : 92
+            anchors.verticalCenter: parent.verticalCenter
+            from: 0; to: 100
+            value: bar.mpv.volume
+            onMoved: { bar.mpv.volume = value; if (bar.mpv.muted) bar.mpv.muted = false }
+        }
+        Item { width: 6; height: 1 }
+        Btn {
+            glyph: bar.win.isFull ? "fullscreen-exit" : "fullscreen"
+            tip: bar.win.isFull ? "Exit full screen" : "Full screen"; keys: "F"
+            onClicked: bar.win.toggleFullscreen()
+        }
     }
 }

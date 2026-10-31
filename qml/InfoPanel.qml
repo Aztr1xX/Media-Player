@@ -1,45 +1,113 @@
 import QtQuick
-import Slate
 import QtQuick.Controls
 import QtQuick.Layouts
+import Slate
 
-
-// Media inspector: what the file actually is.
-Flickable {
-    id: f
+// Media inspector: file, video, audio and loudness facts, with warnings that matter for editing.
+Item {
+    id: panel
     required property var mpv
-    clip: true
-    contentHeight: grid.implicitHeight + 20
-    boundsBehavior: Flickable.StopAtBounds
-    ScrollBar.vertical: ScrollBar {}
-
+    readonly property var p: Media.probe
     readonly property var i: mpv.info
-    function val(k, suffix) { return i[k] !== undefined ? String(i[k]) + (suffix || "") : "–" }
+    readonly property var loud: Media.loudness
 
-    GridLayout {
-        id: grid
-        x: 12; y: 10
-        width: f.width - 24
-        columns: 2
-        columnSpacing: 14
-        rowSpacing: 7
+    function mbps(bits) { return bits > 0 ? (bits / 1e6).toFixed(bits >= 1e7 ? 0 : 1) + " Mb/s" : "" }
+    function kbps(bits) { return bits > 0 ? Math.round(bits / 1000) + " kb/s" : "" }
+    function rate(r) { return r > 0 ? (Math.abs(r - Math.round(r)) < 0.005 ? Math.round(r) : r.toFixed(3)) + " fps" : "" }
+    readonly property bool hdr: p.colorTransfer === "smpte2084" || p.colorTransfer === "arib-std-b67"
 
-        component Key: Text { color: Theme.muted; font.pixelSize: 12 }
-        component Val: Text { color: Theme.ink; font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.WrapAnywhere }
+    component Section: Text {
+        Layout.topMargin: 14; Layout.bottomMargin: 2
+        color: Theme.ink3; font.pixelSize: 10; font.letterSpacing: 0.8; font.weight: Font.DemiBold
+    }
+    component Fact: RowLayout {
+        property string label
+        property string value
+        property bool show: true
+        visible: show && value !== "" && value !== "undefined"
+        Layout.fillWidth: true
+        spacing: 10
+        Text { Layout.preferredWidth: 96; text: label; color: Theme.ink2; font.pixelSize: 12 }
+        Text { Layout.fillWidth: true; text: value; color: Theme.ink; font.pixelSize: 12; wrapMode: Text.Wrap }
+    }
+    component Badge: Rectangle {
+        property alias text: bt.text
+        property color tone: Theme.warn
+        Layout.fillWidth: true
+        implicitHeight: bt.implicitHeight + 14
+        radius: Theme.radius
+        color: Qt.rgba(tone.r, tone.g, tone.b, 0.12)
+        border.color: Qt.rgba(tone.r, tone.g, tone.b, 0.35)
+        Text { id: bt; anchors.fill: parent; anchors.margins: 7; color: Theme.ink; font.pixelSize: 12; wrapMode: Text.WordWrap }
+    }
 
-        Key { text: "File" }        Val { text: App.currentName || "–" }
-        Key { text: "Container" }   Val { text: f.val("container") }
-        Key { text: "Size" }        Val { text: f.i.fileSize !== undefined ? App.formatBytes(f.i.fileSize) : "–" }
-        Key { text: "Duration" }    Val { text: mpv.duration > 0 ? App.formatClock(mpv.duration) + "  (" + mpv.duration.toFixed(3) + " s)" : "–" }
-        Key { text: "Video" }       Val { text: mpv.hasVideo ? f.val("videoCodec") : "none" }
-        Key { text: "Resolution" }  Val { text: f.i.width !== undefined ? f.i.width + " × " + f.i.height : "–" }
-        Key { text: "Frame rate" }  Val { text: mpv.fps > 0 ? mpv.fps.toFixed(3).replace(/\.?0+$/, "") + " fps" : "–" }
-        Key { text: "Pixel format" } Val { text: f.val("pixelFormat") }
-        Key { text: "Colour" }      Val { text: f.i.primaries !== undefined ? f.i.primaries + " / " + f.val("gamma") : "–" }
-        Key { text: "HDR" }         Val { text: (f.i.gamma === "pq" || f.i.gamma === "hlg") ? "Yes (" + f.i.gamma + "), tone-mapped for display" : (f.i.gamma !== undefined ? "No" : "–") }
-        Key { text: "Decoder" }     Val { text: f.i.hwdec && f.i.hwdec !== "no" ? "Hardware (" + f.i.hwdec + ")" : (mpv.hasVideo ? "Software" : "–") }
-        Key { text: "Audio" }       Val { text: f.val("audioCodec") }
-        Key { text: "Sample rate" } Val { text: f.i.sampleRate !== undefined ? (f.i.sampleRate / 1000) + " kHz" : "–" }
-        Key { text: "Channels" }    Val { text: f.val("channels") }
+    Flickable {
+        anchors.fill: parent
+        contentHeight: col.implicitHeight + 24
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        ScrollBar.vertical: ScrollBar {}
+
+        ColumnLayout {
+            id: col
+            x: 14; width: parent.width - 28
+            spacing: 6
+
+            Text { Layout.topMargin: 12; text: "Info"; color: Theme.ink; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
+
+            Text {
+                visible: !panel.mpv.loaded
+                Layout.topMargin: 8
+                text: "Open a file to see its details."
+                color: Theme.ink3; font.pixelSize: 12
+            }
+
+            Badge {
+                visible: panel.p.vfr === true
+                Layout.topMargin: 8
+                text: "Variable frame rate (" + Math.round(panel.p.fpsMin) + " to " + Math.round(panel.p.fpsMax) + " fps). Phones and screen recorders do this. Some editors drift out of sync with VFR, so convert it to a constant frame rate before editing if you see audio slip."
+            }
+            Badge {
+                visible: panel.hdr
+                tone: Theme.accent
+                text: "HDR video. Slate shows it tone-mapped to SDR, so colours on screen are an approximation."
+            }
+
+            Section { visible: panel.mpv.loaded; text: "FILE" }
+            Fact { label: "Name"; value: App.currentName }
+            Fact { label: "Format"; value: panel.p.container || (panel.i.container || "") }
+            Fact { label: "Size"; value: panel.i.fileSize ? App.formatBytes(panel.i.fileSize) : "" }
+            Fact { label: "Duration"; value: panel.mpv.duration > 0 ? App.formatClock(panel.mpv.duration) : "" }
+            Fact { label: "Bitrate"; value: panel.mbps(panel.p.bitrate) }
+
+            Section { visible: panel.mpv.hasVideo; text: "VIDEO" }
+            Fact { show: panel.mpv.hasVideo; label: "Codec"; value: panel.p.videoCodec ? panel.p.videoCodec.toUpperCase() + (panel.p.videoProfile ? " · " + panel.p.videoProfile : "") : (panel.i.videoCodec || "") }
+            Fact { show: panel.mpv.hasVideo; label: "Resolution"; value: panel.i.width ? panel.i.width + " × " + panel.i.height : "" }
+            Fact { show: panel.mpv.hasVideo; label: "Frame rate"; value: panel.rate(panel.p.frameRate || panel.mpv.fps) + (panel.p.vfr === true ? " (variable)" : (panel.p.vfr === false ? " (constant)" : "")) }
+            Fact { show: panel.mpv.hasVideo; label: "Bitrate"; value: panel.mbps(panel.p.videoBitrate) }
+            Fact { show: panel.mpv.hasVideo; label: "Pixels"; value: panel.p.pixelFormat || panel.i.pixelFormat || "" }
+            Fact { show: panel.mpv.hasVideo; label: "Colour"; value: [panel.p.colorPrimaries || panel.i.primaries, panel.p.colorTransfer || panel.i.gamma].filter(x => x && x !== "unknown").join(" · ") }
+            Fact { show: panel.mpv.hasVideo; label: "Scan"; value: panel.p.fieldOrder && panel.p.fieldOrder !== "progressive" && panel.p.fieldOrder !== "unknown" ? "Interlaced (" + panel.p.fieldOrder + ")" : "" }
+            Fact { show: panel.mpv.hasVideo; label: "Decoding"; value: panel.i.hwdec && panel.i.hwdec !== "no" ? "Hardware (" + panel.i.hwdec + ")" : (panel.mpv.loaded ? "Software" : "") }
+
+            Section { visible: panel.mpv.loaded && (panel.p.audioCodec || panel.i.audioCodec); text: "AUDIO" }
+            Fact { label: "Codec"; value: (panel.p.audioCodec || panel.i.audioCodec || "").toUpperCase() }
+            Fact { label: "Channels"; value: panel.p.channels ? panel.p.channels + (panel.p.channelLayout ? " (" + panel.p.channelLayout + ")" : "") : "" }
+            Fact { label: "Sample rate"; value: panel.p.sampleRate ? (panel.p.sampleRate / 1000) + " kHz" : "" }
+            Fact { label: "Bitrate"; value: panel.kbps(panel.p.audioBitrate) }
+
+            Section { visible: panel.mpv.loaded && (panel.loud.measuring || panel.loud.integrated !== undefined); text: "LOUDNESS" }
+            Text { visible: panel.loud.measuring === true; text: "Measuring…"; color: Theme.ink3; font.pixelSize: 12 }
+            Fact { label: "Integrated"; value: panel.loud.integrated !== undefined ? panel.loud.integrated.toFixed(1) + " LUFS" : "" }
+            Fact { label: "Range"; value: panel.loud.range !== undefined ? panel.loud.range.toFixed(1) + " LU" : "" }
+            Fact { label: "True peak"; value: panel.loud.truePeak !== undefined ? panel.loud.truePeak.toFixed(1) + " dBTP" : "" }
+            Text {
+                visible: panel.loud.integrated !== undefined
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: "YouTube turns playback down to about −14 LUFS, so louder than that gains nothing. Keep true peak below −1 dBTP to avoid clipping."
+                color: Theme.ink3; font.pixelSize: 11
+            }
+        }
     }
 }

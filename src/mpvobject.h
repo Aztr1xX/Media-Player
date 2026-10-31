@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <QImage>
 #include <QQuickFramebufferObject>
 #include <QVariant>
 #include <QtQml/qqml.h>
@@ -30,6 +31,10 @@ class MpvObject : public QQuickFramebufferObject
     Q_PROPERTY(QVariantMap info READ info NOTIFY videoInfoChanged)
     Q_PROPERTY(double loopA READ loopA NOTIFY loopChanged)
     Q_PROPERTY(double loopB READ loopB NOTIFY loopChanged)
+    Q_PROPERTY(QVariantList audioTracks READ audioTracks NOTIFY tracksChanged)
+    Q_PROPERTY(QVariantList subtitleTracks READ subtitleTracks NOTIFY tracksChanged)
+    Q_PROPERTY(int audioTrack READ audioTrack NOTIFY tracksChanged)      // 0 = off
+    Q_PROPERTY(int subtitleTrack READ subtitleTrack NOTIFY tracksChanged) // 0 = off
 
 public:
     explicit MpvObject(QQuickItem *parent = nullptr);
@@ -52,6 +57,10 @@ public:
     QVariantMap info() const { return m_info; }
     double loopA() const { return m_loopA; }
     double loopB() const { return m_loopB; }
+    QVariantList audioTracks() const { return m_audioTracks; }
+    QVariantList subtitleTracks() const { return m_subTracks; }
+    int audioTrack() const { return m_aid; }
+    int subtitleTrack() const { return m_sid; }
 
     void setPaused(bool p);
     void setSpeed(double s);
@@ -67,6 +76,13 @@ public:
     Q_INVOKABLE bool screenshot(const QString &file);    // full-resolution frame grab
     Q_INVOKABLE void command(const QVariantList &args);
     Q_INVOKABLE QVariant getProperty(const QString &name) const;
+    Q_INVOKABLE void setMpvProperty(const QString &name, const QVariant &value);
+    Q_INVOKABLE void setAudioTrack(int id);
+    Q_INVOKABLE void setSubtitleTrack(int id);
+    Q_INVOKABLE void addSubtitle(const QString &file);
+    // Copy of the current video frame, scaled to at most maxWidth (for scopes).
+    QImage grabFrame(int maxWidth) const;
+    static QString configDir(); // mpv.conf and scripts/ for power users
 
     // Used by the renderer.
     mpv_handle *handle() const { return m_mpv; }
@@ -87,6 +103,7 @@ signals:
     void loadedChanged();
     void atEndChanged();
     void loopChanged();
+    void tracksChanged();
     void fileLoaded();
     void endOfFile();
     void errorOccurred(const QString &message);
@@ -114,4 +131,6 @@ private:
     std::atomic<bool> m_glReady{false};
     qint64 m_frameNumber = -1;
     QVariantMap m_info;
+    QVariantList m_audioTracks, m_subTracks;
+    int m_aid = 0, m_sid = 0;
 };

@@ -1,4 +1,9 @@
 #include "mpvobject.h"
+#include <QDir>
+#include <QCoreApplication>
+#include <QFileInfo>
+#include <QStandardPaths>
+#include <cstring>
 #include "timecode.h"
 
 #include <QMutex>
@@ -207,8 +212,30 @@ MpvObject::MpvObject(QQuickItem *parent) : QQuickFramebufferObject(parent)
     opt("audio-fallback-to-null", "yes"); // keep playing (silently) if the audio device fails or is unplugged
     opt("screenshot-format", "png");
     opt("ytdl", "yes");               // plays URLs when yt-dlp is installed
+    {
+        // Prefer the yt-dlp that ships next to Slate.exe.
+        const QString ytdlp = QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral(
+#ifdef Q_OS_WIN
+            "yt-dlp.exe"
+#else
+            "yt-dlp"
+#endif
+            ));
+        if (QFileInfo::exists(ytdlp))
+            mpv_set_option_string(m_mpv, "script-opts", ("ytdl_hook-ytdl_path=" + QDir::toNativeSeparators(ytdlp)).toUtf8().constData());
+    }
     opt("demuxer-max-back-bytes", "150MiB"); // cache behind playhead makes stepping backwards faster
     opt("msg-level", log ? "all=v" : "all=warn");
+    opt("sub-auto", "fuzzy");         // pick up subtitles next to the file
+    opt("audio-pitch-correction", "yes");
+    // Power users can drop an mpv.conf, input-free scripts or shaders here; Slate's own
+    // settings win where they overlap because they are applied after.
+    const QByteArray cfg = configDir().toUtf8();
+    if (!cfg.isEmpty()) {
+        opt("config-dir", cfg.constData());
+        opt("config", "yes");
+        opt("load-scripts", "yes");
+    }
 
     if (mpv_initialize(m_mpv) < 0) {
         qWarning("Slate: mpv_initialize failed");
@@ -229,6 +256,9 @@ MpvObject::MpvObject(QQuickItem *parent) : QQuickFramebufferObject(parent)
     mpv_observe_property(m_mpv, 0, "video-format", MPV_FORMAT_STRING);
     mpv_observe_property(m_mpv, 0, "hwdec-current", MPV_FORMAT_STRING);
     mpv_observe_property(m_mpv, 0, "video-params/w", MPV_FORMAT_INT64);
+    mpv_observe_property(m_mpv, 0, "track-list", MPV_FORMAT_NODE);
+    mpv_observe_property(m_mpv, 0, "aid", MPV_FORMAT_STRING);
+    mpv_observe_property(m_mpv, 0, "sid", MPV_FORMAT_STRING);
 
     mpv_set_wakeup_callback(m_mpv, onWakeup, core.get());
 }
@@ -455,6 +485,34 @@ void MpvObject::handleProperty(mpv_event_property *p)
         const bool e = b();
         if (e != m_atEnd) { m_atEnd = e; emit atEndChanged(); if (e) emit endOfFile(); }
     }
+    else if (name == "track-list" && has && p->format == MPV_FORMAT_NODE) {
+        const QVariantList all = nodeToVariant(static_cast<mpv_node *>(p->data)).toList();
+        m_audioTracks.clear();
+        m_subTracks.clear();
+        for (const QVariant &v : all) {
+            const QVariantMap t = v.toMap();
+            QVariantMap e;
+            e.insert(QStringLiteral("id"), t.value(QStringLiteral("id")).toInt());
+            QStringList parts;
+            if (!t.value(QStringLiteral("title")).toString().isEmpty()) parts << t.value(QStringLiteral("title")).toString();
+            if (!t.value(QStringLiteral("lang")).toString().isEmpty()) parts << t.value(QStringLiteral("lang")).toString().toUpper();
+            const QString codec = t.value(QStringLiteral("codec")).toString();
+            if (!codec.isEmpty()) parts << codec;
+            if (t.value(QStringLiteral("demux-channel-count")).toInt() > 0) parts << QStringLiteral("%1 ch").arg(t.value(QStringLiteral("demux-channel-count")).toInt());
+            if (t.value(QStringLiteral("external")).toBool()) parts << QStringLiteral("external");
+            e.insert(QStringLiteral("label"), parts.join(QStringLiteral(" · ")));
+            const QString type = t.value(QStringLiteral("type")).toString();
+            if (type == QLatin1String("audio")) m_audioTracks << e;
+            else if (type == QLatin1String("sub")) m_subTracks << e;
+        }
+        emit tracksChanged();
+    }
+    else if (name == "aid" || name == "sid") {
+        const QString v = s();
+        const int id = (v == QLatin1String("no") || v.isEmpty()) ? 0 : v.toInt();
+        if (name == "aid") m_aid = id; else m_sid = id;
+        emit tracksChanged();
+    }
     else if (name == "video-format" || name == "hwdec-current" || name == "video-params/w") {
         refreshInfo();
     }
@@ -487,4 +545,63 @@ void MpvObject::refreshInfo()
     m_hasVideo = video;
     if (changed)
         emit videoInfoChanged();
+}
+
+void MpvObject::setMpvProperty(const QString &name, const QVariant &value)
+{
+    setPropertyAsync(name.toUtf8().constData(), value);
+}
+
+void MpvObject::setAudioTrack(int id)
+{
+    if (m_mpv) mpv_set_property_string(m_mpv, "aid", id > 0 ? QByteArray::number(id).constData() : "no");
+}
+
+void MpvObject::setSubtitleTrack(int id)
+{
+    if (m_mpv) mpv_set_property_string(m_mpv, "sid", id > 0 ? QByteArray::number(id).constData() : "no");
+}
+
+void MpvObject::addSubtitle(const QString &file)
+{
+    command({ QStringLiteral("sub-add"), file, QStringLiteral("select") });
+}
+
+QImage MpvObject::grabFrame(int maxWidth) const
+{
+    if (!m_mpv || !m_loaded || !m_hasVideo) return {};
+    const char *args[] = { "screenshot-raw", "video", nullptr };
+    mpv_node res;
+    if (mpv_command_ret(m_mpv, args, &res) < 0) return {};
+    QImage img;
+    if (res.format == MPV_FORMAT_NODE_MAP) {
+        int64_t w = 0, h = 0, stride = 0;
+        QByteArray fmt;
+        mpv_byte_array *data = nullptr;
+        for (int i = 0; i < res.u.list->num; ++i) {
+            const char *k = res.u.list->keys[i];
+            const mpv_node &v = res.u.list->values[i];
+            if (!strcmp(k, "w")) w = v.u.int64;
+            else if (!strcmp(k, "h")) h = v.u.int64;
+            else if (!strcmp(k, "stride")) stride = v.u.int64;
+            else if (!strcmp(k, "format") && v.format == MPV_FORMAT_STRING) fmt = v.u.string;
+            else if (!strcmp(k, "data") && v.format == MPV_FORMAT_BYTE_ARRAY) data = v.u.ba;
+        }
+        if (data && w > 0 && h > 0 && fmt == "bgr0") {
+            // bgr0 in memory is 0xffRRGGBB-style RGB32 on little-endian machines.
+            const QImage view(static_cast<const uchar *>(data->data), int(w), int(h), int(stride), QImage::Format_RGB32);
+            img = w > maxWidth ? view.scaledToWidth(maxWidth, Qt::FastTransformation) : view.copy();
+        }
+    }
+    mpv_free_node_contents(&res);
+    return img;
+}
+
+QString MpvObject::configDir()
+{
+    QString d = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (d.isEmpty()) return {};
+    d += QStringLiteral("/mpv");
+    QDir().mkpath(d + QStringLiteral("/scripts"));
+    return d;
 }
