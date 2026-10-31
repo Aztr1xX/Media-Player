@@ -3,7 +3,7 @@
 #include <QString>
 #include <QVector>
 
-// Markers for the open file: time, note and kind (note / good take / mistake).
+// Markers for the open file: time, note and kind (note / good slate / mistake).
 // Kept sorted by time. Saved as JSON per media file in the app data folder.
 class MarkerModel : public QAbstractListModel
 {

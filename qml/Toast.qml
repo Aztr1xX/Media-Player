@@ -1,5 +1,5 @@
 import QtQuick
-import Take
+import Slate
 import QtQuick.Controls
 
 

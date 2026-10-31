@@ -1,5 +1,5 @@
 import QtQuick
-import Take
+import Slate
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
@@ -13,7 +13,7 @@ ApplicationWindow {
     minimumHeight: 560
     visible: true
     color: Theme.bg
-    title: App.currentName ? App.currentName + " · Take" : "Take"
+    title: App.currentName ? App.currentName + " · Slate" : "Slate"
 
     property bool panelsVisible: true
     property bool paletteOpen: palette.opened
@@ -206,7 +206,7 @@ ApplicationWindow {
                 anchors.leftMargin: 14; anchors.rightMargin: 10
                 spacing: 12
                 Rectangle { width: 12; height: 12; radius: 6; color: Theme.accent }
-                Text { text: "Take"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
+                Text { text: "Slate"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
                 Text {
                     Layout.fillWidth: true
                     text: App.currentFile

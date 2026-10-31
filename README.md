@@ -1,4 +1,4 @@
-# Take
+# Slate
 
 A modern media player for reviewing clips and audio before you edit them.
 Plays almost anything (libmpv + FFmpeg), with frame-accurate tools for creators.
@@ -12,7 +12,7 @@ Status: **Phase 0 / early Phase 1**. Windows first; also builds on Linux.
 - Frame step back and forward, exact seeks, SMPTE timecode and frame number
 - J / K / L shuttle, speed 0.25× to 4× with pitch kept
 - In / Out points, loop between them
-- Markers with notes and three kinds (note, good take, mistake), saved automatically per file
+- Markers with notes and three kinds (note, good slate, mistake), saved automatically per file
 - Exports: lossless clip (instant), frame-exact clip (re-encode), markers as EDL for DaVinci Resolve,
   CSV, YouTube chapters (checked against YouTube's rules), frame grab to PNG
 - Resume where you left off; recent files
@@ -38,7 +38,7 @@ Status: **Phase 0 / early Phase 1**. Windows first; also builds on Linux.
 
 ## Build on Windows (all free)
 
-The easy way: push to GitHub and download the `Take-windows-x64` artifact from the
+The easy way: push to GitHub and download the `Slate-windows-x64` artifact from the
 **Windows build** action (see `.github/workflows/windows.yml`).
 
 By hand:
@@ -54,7 +54,7 @@ By hand:
    cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DMPV_DIR=%CD%\deps\mpv
    cmake --build build --parallel
    ```
-5. Put `libmpv-2.dll` and `ffmpeg.exe` next to `take.exe`, then run `windeployqt --qmldir qml take.exe`.
+5. Put `libmpv-2.dll` and `ffmpeg.exe` next to `slate.exe`, then run `windeployqt --qmldir qml slate.exe`.
 
 ## Build on Linux
 
@@ -63,8 +63,8 @@ sudo apt install qt6-base-dev qt6-declarative-dev qml6-module-qtquick-controls q
   qml6-module-qtquick-dialogs qml6-module-qtquick-window qml6-module-qtqml-workerscript \
   qml6-module-qtquick-templates libmpv-dev ffmpeg cmake ninja-build
 cmake -S . -B build -G Ninja && cmake --build build
-./build/take_tests                       # unit tests
-./build/take --selftest some-clip.mp4    # drives the real app through the review workflow
+./build/slate_tests                       # unit tests
+./build/slate --selftest some-clip.mp4    # drives the real app through the review workflow
 ```
 
 ## How it is built
@@ -75,16 +75,16 @@ cmake -S . -B build -G Ninja && cmake --build build
 - `src/markermodel.*`, `src/timecode.*`, `src/folderqueue.*`: pure logic, unit tested in `tests/`.
 - `qml/`: the interface.
 
-Troubleshooting: set `TAKE_MPV_LOG=1` to print mpv's log.
+Troubleshooting: set `SLATE_MPV_LOG=1` to print mpv's log.
 
 ## Using markers in DaVinci Resolve
 
 Press **Markers → EDL**, then in Resolve select the clip's timeline, right-click it in the Media Pool and
 choose **Timelines → Import → Timeline Markers from EDL…**. Marker colours carry over (Note = blue,
-Good take = green, Mistake = red), and the EDL starts at 01:00:00:00 to match Resolve's default timeline start.
+Good slate = green, Mistake = red), and the EDL starts at 01:00:00:00 to match Resolve's default timeline start.
 
 ## Licences of parts
 
 Qt (LGPL v3), libmpv LGPL build (LGPL v2.1+), FFmpeg executable (run as a separate program; the GPL
-build is fine for that). Take itself is a personal project: all rights reserved.
+build is fine for that). Slate itself is a personal project: all rights reserved.
 Those parts' licences only add duties if you hand the app to other people.

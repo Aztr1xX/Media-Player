@@ -1,5 +1,5 @@
 import QtQuick
-import Take
+import Slate
 import QtQuick.Controls
 
 // Flat button that never takes keyboard focus, so Space always means play/pause.

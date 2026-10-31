@@ -171,7 +171,7 @@ QString AppController::uniquePath(const QString &wanted)
 
 QString AppController::ffmpegPath() const
 {
-    // Bundled next to take.exe first, then PATH.
+    // Bundled next to slate.exe first, then PATH.
     const QString local = QStandardPaths::findExecutable(QStringLiteral("ffmpeg"), { QCoreApplication::applicationDirPath() });
     return local.isEmpty() ? QStandardPaths::findExecutable(QStringLiteral("ffmpeg")) : local;
 }
@@ -192,7 +192,7 @@ void AppController::exportClip(bool lossless)
     }
     const QString ff = ffmpegPath();
     if (ff.isEmpty()) {
-        emit message(QStringLiteral("FFmpeg not found. Put ffmpeg.exe next to Take or on PATH"), QString());
+        emit message(QStringLiteral("FFmpeg not found. Put ffmpeg.exe next to Slate or on PATH"), QString());
         return;
     }
     const QString suffix = lossless ? QFileInfo(m_current).suffix() : QStringLiteral("mp4");
@@ -315,7 +315,7 @@ QString AppController::frameGrabPath(qint64 frame) const
 {
     if (!QFileInfo::exists(m_current)) {
         const QString pics = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
-        return uniquePath(pics + QStringLiteral("/Take frame %1.png").arg(frame));
+        return uniquePath(pics + QStringLiteral("/Slate frame %1.png").arg(frame));
     }
     return uniquePath(baseOut() + QStringLiteral("_frame%1.png").arg(frame));
 }

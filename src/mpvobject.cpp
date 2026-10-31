@@ -124,7 +124,7 @@ public:
                         mpv_set_property_string(m_core->mpv, "fbo-format", "rgba8");
                         // and skip the multi-pass pipeline whose chroma planes go stale there
                         mpv_set_property_string(m_core->mpv, "gpu-dumb-mode", "yes");
-                        qInfo("Take: software OpenGL (%s); using 8-bit video buffers", r.constData());
+                        qInfo("Slate: software OpenGL (%s); using 8-bit video buffers", r.constData());
                         break;
                     }
             }
@@ -136,7 +136,7 @@ public:
             };
             mpv_render_context *ctx = nullptr;
             if (mpv_render_context_create(&ctx, m_core->mpv, params) < 0) {
-                qWarning("Take: failed to create mpv OpenGL render context");
+                qWarning("Slate: failed to create mpv OpenGL render context");
             } else {
                 m_core->gl = ctx;
                 m_obj->setRenderContext(ctx);
@@ -184,7 +184,7 @@ MpvObject::MpvObject(QQuickItem *parent) : QQuickFramebufferObject(parent)
     core->mpv = mpv_create();
     m_mpv = core->mpv;
     if (!m_mpv) {
-        qWarning("Take: mpv_create failed");
+        qWarning("Slate: mpv_create failed");
         return;
     }
     core->obj = this;
@@ -200,10 +200,10 @@ MpvObject::MpvObject(QQuickItem *parent) : QQuickFramebufferObject(parent)
     opt("osc", "no");
     opt("input-default-bindings", "no");
     opt("input-vo-keyboard", "no");
-    // TAKE_MPV_LOG=1 prints mpv's own log to the console for troubleshooting.
-    const bool log = qEnvironmentVariableIsSet("TAKE_MPV_LOG");
+    // SLATE_MPV_LOG=1 prints mpv's own log to the console for troubleshooting.
+    const bool log = qEnvironmentVariableIsSet("SLATE_MPV_LOG");
     opt("terminal", log ? "yes" : "no");
-    opt("audio-client-name", "Take");
+    opt("audio-client-name", "Slate");
     opt("audio-fallback-to-null", "yes"); // keep playing (silently) if the audio device fails or is unplugged
     opt("screenshot-format", "png");
     opt("ytdl", "yes");               // plays URLs when yt-dlp is installed
@@ -211,7 +211,7 @@ MpvObject::MpvObject(QQuickItem *parent) : QQuickFramebufferObject(parent)
     opt("msg-level", log ? "all=v" : "all=warn");
 
     if (mpv_initialize(m_mpv) < 0) {
-        qWarning("Take: mpv_initialize failed");
+        qWarning("Slate: mpv_initialize failed");
         return;
     }
 

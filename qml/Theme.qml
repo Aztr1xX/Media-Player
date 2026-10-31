@@ -17,5 +17,5 @@ QtObject {
     readonly property int radius: 6
 
     function kindColor(k) { return k === 1 ? good : (k === 2 ? bad : cool) }
-    function kindName(k) { return k === 1 ? "Good take" : (k === 2 ? "Mistake" : "Note") }
+    function kindName(k) { return k === 1 ? "Good slate" : (k === 2 ? "Mistake" : "Note") }
 }

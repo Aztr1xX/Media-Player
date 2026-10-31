@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(Take VERSION 0.1.0 LANGUAGES CXX)
+project(Slate VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,26 +23,26 @@ else()
 endif()
 
 # ---- core library (no UI) so tests can link it -----------------------------
-add_library(takecore STATIC
+add_library(slatecore STATIC
     src/timecode.h src/timecode.cpp
     src/markermodel.h src/markermodel.cpp
     src/folderqueue.h src/folderqueue.cpp
 )
-target_include_directories(takecore PUBLIC src)
-target_link_libraries(takecore PUBLIC Qt6::Core Qt6::Gui)
+target_include_directories(slatecore PUBLIC src)
+target_link_libraries(slatecore PUBLIC Qt6::Core Qt6::Gui)
 
 # ---- app --------------------------------------------------------------------
-qt_add_executable(take WIN32 MACOSX_BUNDLE
+qt_add_executable(slate WIN32 MACOSX_BUNDLE
     src/main.cpp
 )
-set(TAKE_QML Main Theme TransportBar Timeline MarkerPanel InfoPanel CommandPalette IconButton Toast)
-foreach(f IN LISTS TAKE_QML)
+set(SLATE_QML Main Theme TransportBar Timeline MarkerPanel InfoPanel CommandPalette IconButton Toast)
+foreach(f IN LISTS SLATE_QML)
     # Put each QML file next to the module's qmldir so they see the C++ types and each other.
     set_source_files_properties(qml/${f}.qml PROPERTIES QT_RESOURCE_ALIAS ${f}.qml)
 endforeach()
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-qt_add_qml_module(take
-    URI Take
+qt_add_qml_module(slate
+    URI Slate
     VERSION 1.0
     SOURCES
         src/mpvobject.h src/mpvobject.cpp
@@ -58,13 +58,13 @@ qt_add_qml_module(take
         qml/IconButton.qml
         qml/Toast.qml
 )
-target_link_libraries(take PRIVATE takecore libmpv Qt6::Quick Qt6::QuickControls2 Qt6::OpenGL)
-target_compile_definitions(take PRIVATE PROJECT_VERSION_STRING="${PROJECT_VERSION}")
+target_link_libraries(slate PRIVATE slatecore libmpv Qt6::Quick Qt6::QuickControls2 Qt6::OpenGL)
+target_compile_definitions(slate PRIVATE PROJECT_VERSION_STRING="${PROJECT_VERSION}")
 
 # ---- tests ------------------------------------------------------------------
 enable_testing()
-qt_add_executable(take_tests tests/tst_core.cpp)
-target_link_libraries(take_tests PRIVATE takecore Qt6::Test)
-add_test(NAME core COMMAND take_tests)
+qt_add_executable(slate_tests tests/tst_core.cpp)
+target_link_libraries(slate_tests PRIVATE slatecore Qt6::Test)
+add_test(NAME core COMMAND slate_tests)
 
-install(TARGETS take RUNTIME DESTINATION . BUNDLE DESTINATION .)
+install(TARGETS slate RUNTIME DESTINATION . BUNDLE DESTINATION .)
