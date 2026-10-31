@@ -15,6 +15,11 @@ ApplicationWindow {
     title: App.currentName ? App.currentName + " – Slate" : "Slate"
 
     property bool panelsVisible: App.setting("panelsVisible", true)
+    property int guideMode: 0      // crop guide: 0 off, 1 = 9:16, 2 = 4:5, 3 = 1:1
+    function cycleGuide() {
+        guideMode = (guideMode + 1) % 4
+        toast(["Crop guide off", "9:16 Shorts guide. Drag it sideways to try a crop", "4:5 feed guide", "1:1 square guide"][guideMode])
+    }
     property int sideTab: App.setting("sideTab", 0)
     onSideTabChanged: App.setSetting("sideTab", sideTab)
     property bool paletteOpen: palette.opened
@@ -190,6 +195,7 @@ ApplicationWindow {
 
         { id: "panels", category: "View", name: "Show or hide side panel", keys: ["H"], run: togglePanels },
         { id: "fullscreen", category: "View", name: "Full screen", keys: ["F", "F11"], run: toggleFullscreen },
+        { id: "cropGuide", category: "View", name: "Crop guide (9:16, 4:5, 1:1, off)", keys: ["G"], run: cycleGuide },
         { id: "tabMarkers", category: "View", name: "Show markers", keys: ["Alt+1"], run: () => showTab(0) },
         { id: "tabClips", category: "View", name: "Show clips in folder", keys: ["Alt+2"], run: () => showTab(1) },
         { id: "tabInfo", category: "View", name: "Show media info", keys: ["Alt+3"], run: () => showTab(2) },
@@ -434,6 +440,13 @@ ApplicationWindow {
                         id: mpv
                         width: win.compareFile ? parent.width / 2 : parent.width
                         height: parent.height
+                        CropGuide {
+                            anchors.fill: parent
+                            visible: mode > 0 && mpv.loaded && mpv.hasVideo
+                            mode: win.guideMode
+                            videoWidth: mpv.info.width || 0
+                            videoHeight: mpv.info.height || 0
+                        }
                     }
                     Loader {
                         id: compareLoader
