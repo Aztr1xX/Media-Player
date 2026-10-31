@@ -6,9 +6,8 @@ DaVinci Resolve, a waveform timeline, silence skipping, star ratings and an offl
 
 ## Install on Windows
 
-1. Open the repo's **Releases** page and download `Slate-Setup-1.0.0.exe` from **Slate (latest build)**.
-   (Every push to `main` rebuilds it. The same files are also attached to each run of the
-   **Windows build** action as `Slate-installer`.)
+1. Download the installer: <https://github.com/Aztr1xX/Media-Player/releases/latest/download/Slate-Setup.exe>
+   (every push to `main` builds a new version and publishes it on the **Releases** page).
 2. Run it. SmartScreen warns because the app isn't code-signed: choose **More info → Run anyway**.
    Pick **Install for me only** (no admin needed) or for all users.
 3. Leave **Make Slate my default video player** ticked on the last page. Windows Settings opens on
@@ -24,6 +23,13 @@ The installer also adds:
 - `ffmpeg`, `ffprobe`, `whisper-cli` (transcription) and `yt-dlp` (URLs), so nothing else needs installing
 
 A portable zip (`Slate-portable.zip`) is published next to the installer if you'd rather not install.
+
+### Updates
+
+Slate checks for a newer version a few seconds after it starts and downloads it in the background.
+When it's ready, a **Restart to update** button appears in the top bar: Slate closes, installs the
+update silently and reopens. Settings, markers and ratings are kept. Turn off automatic downloads,
+or check by hand, in **Settings → About**.
 
 Opening another file from Explorer while Slate is open reuses the same window
 (turn that off in Settings → General).

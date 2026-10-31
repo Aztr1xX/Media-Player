@@ -41,7 +41,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir={#OutputDir}
-OutputBaseFilename=Slate-Setup-{#AppVersion}
+OutputBaseFilename=Slate-Setup
 SetupIconFile=slate.ico
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}
@@ -102,6 +102,8 @@ Root: HKA; Subkey: "Software\Classes\Directory\shell\Slate"; ValueType: string; 
 Root: HKA; Subkey: "Software\Classes\Directory\shell\Slate\command"; ValueType: string; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: folderverb
 
 [Run]
+; after a silent update started from inside Slate (/RELAUNCH), reopen it
+Filename: "{app}\{#AppExe}"; Flags: nowait; Check: ShouldRelaunch
 Filename: "{app}\{#AppExe}"; Description: "Open Slate now"; Flags: nowait postinstall skipifsilent unchecked
 Filename: "{code:DefaultAppsUri}"; Description: "Make Slate my default video player (opens Windows Settings)"; Flags: shellexec nowait postinstall skipifsilent
 
@@ -112,6 +114,15 @@ Type: filesandordirs; Name: "{app}"
 const
   VideoExts = '.mp4 .m4v .mov .mkv .webm .avi .wmv .flv .mpg .mpeg .m2ts .mts .ts .3gp .ogv .mxf';
   AudioExts = '.mp3 .wav .flac .m4a .aac .ogg .opus .wma .aif .aiff';
+
+function ShouldRelaunch(): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 1 to ParamCount do
+    if CompareText(ParamStr(I), '/RELAUNCH') = 0 then Result := True;
+end;
 
 function RootKey(): Integer;
 begin

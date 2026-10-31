@@ -290,6 +290,17 @@ ApplicationWindow {
         mpv.setMpvProperty("hwdec", App.setting("hwdec", true) ? "auto-safe" : "no")
         Transcript.model = App.setting("whisperModel", "base.en")
     }
+    // Look for a newer build a few seconds after start, and fetch it in the background.
+    Timer {
+        interval: 4000; running: Updater.supported && App.setting("autoUpdate", true); repeat: false
+        onTriggered: Updater.check(true)
+    }
+    Connections {
+        target: Updater
+        function onChanged() {
+            if (Updater.supported && Updater.state === "available" && App.setting("autoUpdate", true)) Updater.download()
+        }
+    }
     onClosing: {
         if (mpv.loaded) App.savePosition(mpv.position, mpv.duration)
         const maxed = visibility === Window.Maximized || (isFull && wasMaximized)
@@ -361,6 +372,20 @@ ApplicationWindow {
                     Btn { glyph: "next"; iconSize: 15; implicitWidth: 28; tip: "Next clip"; keys: "PgDown"; enabled: App.queueIndex < App.queue.length - 1; onClicked: win.openNext(1) }
                 }
                 Item { Layout.fillWidth: true }
+
+                // update chip: appears only when a newer build exists
+                Btn {
+                    id: updateChip
+                    visible: ["available", "downloading", "ready"].indexOf(Updater.state) >= 0
+                    primary: Updater.state === "ready"
+                    active: Updater.state !== "ready"
+                    glyph: Updater.state === "ready" ? "loop" : "download"
+                    text: Updater.state === "ready" ? "Restart to update"
+                          : (Updater.state === "downloading" ? "Downloading update " + Math.round(Updater.progress * 100) + "%" : "Update to " + Updater.latestVersion)
+                    tip: Updater.state === "ready" ? "Slate closes, updates and reopens in a few seconds" : "A newer version of Slate is available"
+                    enabled: Updater.state !== "downloading"
+                    onClicked: Updater.state === "ready" ? Updater.installAndRestart() : Updater.download()
+                }
 
                 Rectangle {
                     Layout.preferredWidth: 240

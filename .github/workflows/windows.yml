@@ -50,7 +50,7 @@ jobs:
       - name: Configure and build
         shell: pwsh
         run: |
-          cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DMPV_DIR="$PWD/deps/mpv"
+          cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DMPV_DIR="$PWD/deps/mpv" -DSLATE_BUILD=${{ github.run_number }}
           cmake --build build --parallel
 
       - name: Unit tests
@@ -100,7 +100,7 @@ jobs:
             $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
             if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
           }
-          & $iscc /DAppVersion=1.0.0 /DSourceDir="$PWD\dist" /DOutputDir="$PWD\installer" packaging\windows\slate.iss
+          & $iscc /DAppVersion=1.1.${{ github.run_number }} /DSourceDir="$PWD\dist" /DOutputDir="$PWD\installer" packaging\windows\slate.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Compress-Archive -Path dist\* -DestinationPath installer\Slate-portable.zip
           Get-ChildItem installer
@@ -119,16 +119,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $v = "1.1.${{ github.run_number }}"
+          # the old rolling "latest" tag from before versioned releases
           gh release delete latest --yes --cleanup-tag 2>$null
-          $notes = "Latest build of Slate from commit ${{ github.sha }}. Download Slate-Setup-1.0.0.exe and run it. SmartScreen may warn because the app isn't signed: choose More info, then Run anyway."
-          gh release create latest installer\Slate-Setup-1.0.0.exe installer\Slate-portable.zip --title "Slate (latest build)" --notes "$notes" --target ${{ github.sha }} --latest
-
-      - name: Upload self-test screenshot
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: selftest-results
-          path: |
-            selftest.png
-            selftest.png.log
-          if-no-files-found: ignore
+          $notes = "Slate $v (commit ${{ github.sha }}). New install: download Slate-Setup.exe and run it (SmartScreen: More info, then Run anyway). Already installed: Slate offers this update itself."
+          gh release create "v$v" installer\Slate-Setup.exe installer\Slate-portable.zip --title "Slate $v" --notes "$notes" --target ${{ github.sha }} --latest
+          # keep only the 5 newest releases
+          gh release list --limit 100 --json tagName --jq '.[5:][].tagName' | ForEach-Object { gh release delete $_ --yes --cleanup-tag }

@@ -315,6 +315,35 @@ Popup {
                     Text { text: "Slate " + App.version; color: Theme.ink; font.pixelSize: 18; font.weight: Font.DemiBold }
                     Note { text: "A media player for reviewing clips and audio before you edit them." }
                     Divider {}
+                    Text { text: "Updates"; color: Theme.ink; font.pixelSize: 13; font.weight: Font.DemiBold }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Note {
+                            text: {
+                                switch (Updater.state) {
+                                case "checking": return "Checking for updates…"
+                                case "current": return "You're on the latest version."
+                                case "available": return "Version " + Updater.latestVersion + " is available."
+                                case "downloading": return "Downloading version " + Updater.latestVersion + " (" + Math.round(Updater.progress * 100) + "%)…"
+                                case "ready": return "Version " + Updater.latestVersion + " is ready. Slate will close, update and reopen."
+                                case "error": return Updater.error
+                                default: return Updater.supported ? "Slate checks for updates when it starts." : "Updates are installed through the Windows installer."
+                                }
+                            }
+                            color: Updater.state === "error" ? Theme.bad : Theme.ink2
+                        }
+                        Btn {
+                            visible: Updater.supported
+                            flat: Updater.state !== "available" && Updater.state !== "ready"
+                            primary: Updater.state === "available" || Updater.state === "ready"
+                            enabled: Updater.state !== "checking" && Updater.state !== "downloading"
+                            text: Updater.state === "ready" ? "Restart to update" : (Updater.state === "available" ? "Download update" : "Check now")
+                            onClicked: Updater.state === "ready" ? Updater.installAndRestart() : (Updater.state === "available" ? Updater.download() : Updater.check(false))
+                        }
+                    }
+                    Toggle { visible: Updater.supported; key: "autoUpdate"; text: "Download updates automatically" }
+                    Divider {}
                     Note { text: "Built with Qt (LGPL v3), libmpv (LGPL v2.1+) and FFmpeg, which runs as a separate program. Transcription uses whisper.cpp (MIT) and OpenAI's Whisper models (MIT). URL playback uses yt-dlp (Unlicense)." }
                     Note { text: "Slate itself: personal use, all rights reserved." }
                 }

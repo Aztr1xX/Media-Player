@@ -36,6 +36,7 @@ const QHash<QString, QString> &icons()
         { QStringLiteral("subtitles"), QStringLiteral("<rect x='3' y='5' width='18' height='14' rx='2'/><path d='M7 12h3M13 12h4M7 15.5h6M15.5 15.5H17'/>") },
         { QStringLiteral("audio-track"), QStringLiteral("<path d='M4 10v4M8 7v10M12 4v16M16 8v8M20 10.5v3'/>") },
         { QStringLiteral("scissors"), QStringLiteral("<circle cx='6' cy='6.5' r='2.5'/><circle cx='6' cy='17.5' r='2.5'/><path d='M8 8l12 9.5M8 16L20 6.5'/>") },
+        { QStringLiteral("download"), QStringLiteral("<path d='M12 3.5v11'/><path d='M8 11l4 3.5 4-3.5'/><path d='M5 15v3.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V15'/>") },
         { QStringLiteral("export"), QStringLiteral("<path d='M12 14.5V3.5'/><path d='M8 7l4-3.5L16 7'/><path d='M5 12v6.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12'/>") },
         { QStringLiteral("camera"), QStringLiteral("<path d='M4.5 7.5h3l1.5-2.5h6l1.5 2.5h3A1.5 1.5 0 0 1 21 9v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18V9a1.5 1.5 0 0 1 1.5-1.5z'/><circle cx='12' cy='13' r='3.5'/>") },
         { QStringLiteral("list"), QStringLiteral("<path d='M9 6h11M9 12h11M9 18h11'/><path d='M4.5 6h.01M4.5 12h.01M4.5 18h.01' stroke-width='2.6'/>") },

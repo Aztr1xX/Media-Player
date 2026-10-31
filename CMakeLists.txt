@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.21)
-project(Slate VERSION 1.0.0 LANGUAGES CXX)
+# CI passes -DSLATE_BUILD=<run number> so every build has its own version for the updater.
+if(NOT DEFINED SLATE_BUILD)
+    set(SLATE_BUILD 0)
+endif()
+project(Slate VERSION 1.1.${SLATE_BUILD} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -60,6 +64,7 @@ qt_add_qml_module(slate
         src/media.h src/media.cpp
         src/visuals.h src/visuals.cpp
         src/transcript.h src/transcript.cpp
+        src/updater.h src/updater.cpp
         src/icons.h src/icons.cpp
     RESOURCES
         assets/slate.png

@@ -2,6 +2,7 @@
 #include "mpvobject.h"
 #include "media.h"
 #include "transcript.h"
+#include "updater.h"
 #include "icons.h"
 #include "visuals.h"
 #include <QTest>
@@ -49,6 +50,20 @@ public:
             QMetaObject::invokeMethod(m_win, "openMedia", Q_ARG(QVariant, QVariant(m_file)));
         }, [this] { return m_mpv->loaded() && m_mpv->duration() > 0 && m_mpv->fps() > 0; });
         step("pause", [this] { m_mpv->setPaused(true); }, [this] { return m_mpv->paused(); });
+        step("update version compare", [] {}, [] {
+            return Updater::isNewer(QStringLiteral("1.1.12"), QStringLiteral("1.1.9")) && !Updater::isNewer(QStringLiteral("v1.1.9"), QStringLiteral("1.1.9"))
+                && Updater::isNewer(QStringLiteral("v1.2.0"), QStringLiteral("1.1.40")) && !Updater::isNewer(QStringLiteral("latest"), QStringLiteral("1.1.3"));
+        });
+#ifdef Q_OS_WIN
+        step("update check reaches GitHub", [] { Updater::instance()->check(false); }, [] {
+            const QString st = Updater::instance()->state();
+            if (st == QLatin1String("current") || st == QLatin1String("available")) {
+                std::printf("      latest release: %s (%s)\n", qPrintable(Updater::instance()->latestVersion()), qPrintable(st));
+                return true;
+            }
+            return false;
+        }, 20000);
+#endif
 #ifdef Q_OS_WIN
         step("bundled tools present (ffmpeg, ffprobe)", [] {}, [] {
             std::printf("      whisper-cli bundled: %s\n", Transcript::instance()->available() ? "yes" : "no");
@@ -244,6 +259,7 @@ public:
             { QStringLiteral("07-settings"), [this] { QMetaObject::invokeMethod(m_win, "closePalette"); call("openSettings", 0); }, 800 },
             { QStringLiteral("08-shortcuts"), [this] { call("openSettings", 4); }, 800 },
             { QStringLiteral("09-windows"), [this] { call("openSettings", 5); }, 800 },
+            { QStringLiteral("09b-about-updates"), [this] { if (qEnvironmentVariableIsSet("SLATE_FAKE_UPDATE")) Updater::instance()->check(false); call("openSettings", 6); }, 800 },
             { QStringLiteral("10-fullscreen"), [this] { QMetaObject::invokeMethod(m_win, "closeSettings"); QMetaObject::invokeMethod(m_win, "toggleFullscreen"); }, 1500 },
         };
         next();
@@ -339,6 +355,7 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonInstance("Slate", 1, 0, "App", &controller);
     qmlRegisterSingletonInstance("Slate", 1, 0, "Media", Media::instance());
     qmlRegisterSingletonInstance("Slate", 1, 0, "Transcript", Transcript::instance());
+    qmlRegisterSingletonInstance("Slate", 1, 0, "Updater", Updater::instance());
 
     QLocalServer server;
     if (single) {
