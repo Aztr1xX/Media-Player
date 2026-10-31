@@ -77,7 +77,14 @@ cmake -S . -B build -G Ninja && cmake --build build
 
 Troubleshooting: set `TAKE_MPV_LOG=1` to print mpv's log.
 
+## Using markers in DaVinci Resolve
+
+Press **Markers → EDL**, then in Resolve select the clip's timeline, right-click it in the Media Pool and
+choose **Timelines → Import → Timeline Markers from EDL…**. Marker colours carry over (Note = blue,
+Good take = green, Mistake = red), and the EDL starts at 01:00:00:00 to match Resolve's default timeline start.
+
 ## Licences of parts
 
 Qt (LGPL v3), libmpv LGPL build (LGPL v2.1+), FFmpeg executable (run as a separate program; the GPL
-build is fine for that). Take's own licence is still to be chosen.
+build is fine for that). Take itself is a personal project: all rights reserved.
+Those parts' licences only add duties if you hand the app to other people.
