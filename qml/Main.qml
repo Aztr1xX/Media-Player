@@ -15,7 +15,8 @@ ApplicationWindow {
     title: App.currentName ? App.currentName + " – Slate" : "Slate"
 
     property bool panelsVisible: App.setting("panelsVisible", true)
-    property int sideTab: 0
+    property int sideTab: App.setting("sideTab", 0)
+    onSideTabChanged: App.setSetting("sideTab", sideTab)
     property bool paletteOpen: palette.opened
     readonly property bool isFull: visibility === Window.FullScreen
     property bool mouseRecently: true
@@ -217,6 +218,11 @@ ApplicationWindow {
             onActivated: modelData.run()
         }
     }
+    // keyboard media keys
+    Shortcut { sequences: ["Toggle Media Play/Pause", "Media Play", "Media Pause"]; context: Qt.WindowShortcut; enabled: mpv.loaded; onActivated: mpv.togglePause() }
+    Shortcut { sequence: "Media Stop"; context: Qt.WindowShortcut; enabled: mpv.loaded; onActivated: mpv.paused = true }
+    Shortcut { sequence: "Media Next"; context: Qt.WindowShortcut; onActivated: win.openNext(1) }
+    Shortcut { sequence: "Media Previous"; context: Qt.WindowShortcut; onActivated: win.openNext(-1) }
     Shortcut {
         sequence: "Escape"
         enabled: !palette.opened && !settingsDialog.opened && (win.isFull || win.compareFile !== "")

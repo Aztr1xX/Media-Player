@@ -156,7 +156,9 @@ QString AppController::baseOut() const
 {
     const QFileInfo fi(m_current);
     const QString custom = setting(QStringLiteral("exportFolder")).toString();
-    const QString dir = (!custom.isEmpty() && QFileInfo(custom).isDir()) ? custom : fi.absolutePath();
+    // Default: a "Slate exports" folder beside the clip, so exports don't join the clip list.
+    QString dir = (!custom.isEmpty() && QFileInfo(custom).isDir()) ? custom : fi.absolutePath() + QStringLiteral("/Slate exports");
+    QDir().mkpath(dir);
     return dir + QLatin1Char('/') + fi.completeBaseName();
 }
 
@@ -437,7 +439,7 @@ QString AppController::mpvConfigDir() const
 QString AppController::exportFolderLabel() const
 {
     const QString custom = setting(QStringLiteral("exportFolder")).toString();
-    return custom.isEmpty() ? QStringLiteral("Next to the original file") : QDir::toNativeSeparators(custom);
+    return custom.isEmpty() ? QStringLiteral("A \"Slate exports\" folder next to the clip") : QDir::toNativeSeparators(custom);
 }
 
 QString AppController::formatTimecode(double seconds, double fps) const

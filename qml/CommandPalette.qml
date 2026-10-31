@@ -15,7 +15,7 @@ Popup {
     x: Math.round((parent.width - width) / 2)
     y: Math.round(parent.height * 0.12)
     width: Math.min(600, parent.width - 40)
-    height: Math.min(440, 56 + Math.max(40, list.contentHeight) + 12)
+    height: 62 + Math.max(40, Math.min(10, pal.shown.length) * 36) + 8
     padding: 0
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.45) }

@@ -169,10 +169,12 @@ Item {
                 primary: true
                 glyph: "scissors"
                 text: "Export clip"
-                enabled: !App.busy && App.inPoint >= 0 && App.outPoint > App.inPoint
-                tip: App.inPoint >= 0 && App.outPoint > App.inPoint ? "Copy In to Out without re-encoding" : "Set In (I) and Out (O) first"
+                readonly property bool ready: App.inPoint >= 0 && App.outPoint > App.inPoint
+                enabled: !App.busy
+                opacity: ready ? 1 : 0.55
+                tip: ready ? "Copy In to Out without re-encoding" : "Set In (I) and Out (O) first"
                 keys: "Ctrl+E"
-                onClicked: App.exportClip(true)
+                onClicked: ready ? App.exportClip(true) : panel.win.toast("Set an In point (I) and an Out point (O) first")
             }
             Btn {
                 id: exportMore

@@ -156,7 +156,7 @@ Popup {
                     Row {
                         spacing: 8
                         Btn { flat: false; glyph: "open"; text: "Choose folder…"; onClicked: exportFolderDialog.open() }
-                        Btn { flat: false; text: "Next to the original"; onClicked: { App.setSetting("exportFolder", ""); exportLabel.text = App.exportFolderLabel() } }
+                        Btn { flat: false; text: "Use default"; onClicked: { App.setSetting("exportFolder", ""); exportLabel.text = App.exportFolderLabel() } }
                     }
                     Divider {}
                     Text { text: "How clip export works"; color: Theme.ink; font.pixelSize: Theme.fontBody }
