@@ -35,6 +35,7 @@ class MpvObject : public QQuickFramebufferObject
     Q_PROPERTY(QVariantList subtitleTracks READ subtitleTracks NOTIFY tracksChanged)
     Q_PROPERTY(int audioTrack READ audioTrack NOTIFY tracksChanged)      // 0 = off
     Q_PROPERTY(int subtitleTrack READ subtitleTrack NOTIFY tracksChanged) // 0 = off
+    Q_PROPERTY(int listen READ listen WRITE setListen NOTIFY listenChanged)     // 0 both channels, 1 left only, 2 right only
 
 public:
     explicit MpvObject(QQuickItem *parent = nullptr);
@@ -61,6 +62,8 @@ public:
     QVariantList subtitleTracks() const { return m_subTracks; }
     int audioTrack() const { return m_aid; }
     int subtitleTrack() const { return m_sid; }
+    int listen() const { return m_listen; }
+    void setListen(int c);
 
     void setPaused(bool p);
     void setSpeed(double s);
@@ -74,6 +77,8 @@ public:
     Q_INVOKABLE void seekBy(double seconds, bool exact = false);
     Q_INVOKABLE void setLoop(double a, double b);        // a<0 clears
     Q_INVOKABLE bool screenshot(const QString &file);    // full-resolution frame grab
+    Q_INVOKABLE bool copyFrame();
+    Q_INVOKABLE QVariantList audioLevels() const;        // [peak dB per channel...] of the audio playing now                        // full-resolution frame to the clipboard
     Q_INVOKABLE void command(const QVariantList &args);
     Q_INVOKABLE QVariant getProperty(const QString &name) const;
     Q_INVOKABLE void setMpvProperty(const QString &name, const QVariant &value);
@@ -90,6 +95,7 @@ public:
     void setRenderContext(mpv_render_context *ctx); // render thread; flushes a queued open()
 
 signals:
+    void listenChanged();
     void pathChanged();
     void mediaTitleChanged();
     void positionChanged();
@@ -114,6 +120,8 @@ private slots:
     void doUpdate();
 
 private:
+    int m_listen = 0;
+    void applyAudioFilters();
     void handleProperty(mpv_event_property *p);
     void refreshInfo();
     void setPropertyAsync(const char *name, const QVariant &v);

@@ -15,11 +15,55 @@ ApplicationWindow {
     title: App.currentName ? App.currentName + " – Slate" : "Slate"
 
     property bool panelsVisible: App.setting("panelsVisible", true)
-    property int guideMode: 0      // crop guide: 0 off, 1 = 9:16, 2 = 4:5, 3 = 1:1
-    function cycleGuide() {
-        guideMode = (guideMode + 1) % 4
-        toast(["Crop guide off", "9:16 Shorts guide. Drag it sideways to try a crop", "4:5 feed guide", "1:1 square guide"][guideMode])
+    // picture zoom: Ctrl+wheel zooms at the pointer, drag pans, Z switches between 100% and 200%
+    property real zoomScale: 1
+    property real panX: 0
+    property real panY: 0
+    function pictureRect() {
+        const w = mpv.width, h = mpv.height
+        const vw = mpv.info.width || 16, vh = mpv.info.height || 9
+        const va = vw / vh
+        return w / h > va ? Qt.rect((w - h * va) / 2, 0, h * va, h) : Qt.rect(0, (h - w / va) / 2, w, w / va)
     }
+    function setZoom(s, px, py) {
+        s = Math.max(1, Math.min(8, s))
+        // keep the picture covering the frame: pan limited to the overflow
+        const lim = (s - 1) / (2 * s)
+        px = s <= 1.001 ? 0 : Math.max(-lim, Math.min(lim, px))
+        py = s <= 1.001 ? 0 : Math.max(-lim, Math.min(lim, py))
+        zoomScale = s; panX = px; panY = py
+        mpv.setMpvProperty("video-zoom", Math.log2(s))
+        mpv.setMpvProperty("video-pan-x", px)
+        mpv.setMpvProperty("video-pan-y", py)
+    }
+    function zoomAt(s, mx, my) {
+        s = Math.max(1, Math.min(8, s))
+        const r = pictureRect()
+        const cx = mpv.width / 2, cy = mpv.height / 2
+        // picture coordinate under the pointer stays under the pointer
+        const vx = (mx - cx) / (r.width * zoomScale) - panX
+        const vy = (my - cy) / (r.height * zoomScale) - panY
+        setZoom(s, (mx - cx) / (r.width * s) - vx, (my - cy) / (r.height * s) - vy)
+    }
+    function toggleZoom() {
+        if (!mpv.hasVideo) return
+        if (zoomScale > 1.001) setZoom(1, 0, 0)
+        else if (videoMouse.containsMouse) zoomAt(2, videoMouse.mouseX, videoMouse.mouseY)
+        else setZoom(2, 0, 0)
+    }
+    Connections { target: App; function onCurrentFileChanged() { win.setZoom(1, 0, 0) } }
+
+    // crop guide: on/off with G, ratio remembered (1 = 9:16, 2 = 4:5, 3 = 1:1)
+    property bool guideOn: false
+    property int guideRatio: App.setting("guideRatio", 1)
+    readonly property int guideMode: guideOn ? guideRatio : 0
+    readonly property var guideNames: ["", "9:16", "4:5", "1:1"]
+    function toggleGuide() {
+        guideOn = !guideOn
+        toast(guideOn ? guideNames[guideRatio] + " crop guide on. Drag it sideways to try a crop" : "Crop guide off")
+    }
+    function setGuideRatio(r) { guideRatio = r; App.setSetting("guideRatio", r); guideOn = true }
+    function cycleGuide() { toggleGuide() }
     property int sideTab: App.setting("sideTab", 0)
     onSideTabChanged: App.setSetting("sideTab", sideTab)
     property bool paletteOpen: palette.opened
@@ -195,12 +239,17 @@ ApplicationWindow {
 
         { id: "panels", category: "View", name: "Show or hide side panel", keys: ["H"], run: togglePanels },
         { id: "fullscreen", category: "View", name: "Full screen", keys: ["F", "F11"], run: toggleFullscreen },
-        { id: "cropGuide", category: "View", name: "Crop guide (9:16, 4:5, 1:1, off)", keys: ["G"], run: cycleGuide },
+        { id: "copyFrame", category: "Export", name: "Copy current frame to clipboard", keys: ["Ctrl+C"], run: () => { if (mpv.hasVideo) toast(mpv.copyFrame() ? "Frame copied. Paste it anywhere" : "Couldn't copy this frame") } },
+        { id: "zoom", category: "View", name: "Zoom picture to 200% / back to fit", keys: ["Z"], run: toggleZoom },
+        { id: "cropGuide", category: "View", name: "Show or hide crop guide", keys: ["G"], run: toggleGuide },
+        { id: "guide916", category: "View", name: "Crop guide: 9:16 (Shorts)", keys: [], run: () => setGuideRatio(1) },
+        { id: "guide45", category: "View", name: "Crop guide: 4:5", keys: [], run: () => setGuideRatio(2) },
+        { id: "guide11", category: "View", name: "Crop guide: 1:1", keys: [], run: () => setGuideRatio(3) },
         { id: "tabMarkers", category: "View", name: "Show markers", keys: ["Alt+1"], run: () => showTab(0) },
         { id: "tabClips", category: "View", name: "Show clips in folder", keys: ["Alt+2"], run: () => showTab(1) },
         { id: "tabInfo", category: "View", name: "Show media info", keys: ["Alt+3"], run: () => showTab(2) },
         { id: "tabTranscript", category: "View", name: "Show transcript", keys: ["Alt+4"], run: () => showTab(3) },
-        { id: "tabScopes", category: "View", name: "Show video scopes", keys: ["Alt+5"], run: () => showTab(4) },
+        { id: "tabScopes", category: "View", name: "Show scopes and audio meter", keys: ["Alt+5"], run: () => showTab(4) },
         { id: "palette", category: "View", name: "Search actions", keys: ["Ctrl+K"], run: () => palette.open() },
         { id: "shortcuts", category: "View", name: "Keyboard shortcuts", keys: ["?"], run: () => settingsDialog.openAt(4) },
         { id: "settings", category: "View", name: "Settings", keys: ["Ctrl+,"], run: () => settingsDialog.openAt(0) }
@@ -440,13 +489,6 @@ ApplicationWindow {
                         id: mpv
                         width: win.compareFile ? parent.width / 2 : parent.width
                         height: parent.height
-                        CropGuide {
-                            anchors.fill: parent
-                            visible: mode > 0 && mpv.loaded && mpv.hasVideo
-                            mode: win.guideMode
-                            videoWidth: mpv.info.width || 0
-                            videoHeight: mpv.info.height || 0
-                        }
                     }
                     Loader {
                         id: compareLoader
@@ -506,18 +548,44 @@ ApplicationWindow {
                     Chip { visible: Math.abs(mpv.speed - 1) > 0.001; text: mpv.speed + "×" }
                     Chip { visible: win.skipSilence; text: "Skipping silences" + (win.silenceSaved >= 1 ? " · " + App.formatClock(win.silenceSaved) + " saved" : "") }
                     Chip { visible: Media.probe.vfr === true; tone: Theme.warn; text: "Variable frame rate" }
+                    Chip { visible: win.zoomScale > 1.001; text: "Zoom " + Math.round(win.zoomScale * 100) + "%  ·  Z to fit" }
                 }
 
                 MouseArea {
+                    id: videoMouse
                     anchors.fill: parent
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton
                     enabled: mpv.loaded
-                    onPositionChanged: { win.mouseRecently = true; idleTimer.restart() }
-                    onClicked: mpv.togglePause()
+                    property point pressAt
+                    property real pressPanX: 0
+                    property real pressPanY: 0
+                    property bool dragged: false
+                    onPressed: (m) => { pressAt = Qt.point(m.x, m.y); pressPanX = win.panX; pressPanY = win.panY; dragged = false }
+                    onPositionChanged: (m) => {
+                        win.mouseRecently = true; idleTimer.restart()
+                        if (pressed && win.zoomScale > 1.001) {
+                            if (Math.abs(m.x - pressAt.x) + Math.abs(m.y - pressAt.y) > 4) dragged = true
+                            const r = win.pictureRect()
+                            win.setZoom(win.zoomScale, pressPanX + (m.x - pressAt.x) / (r.width * win.zoomScale), pressPanY + (m.y - pressAt.y) / (r.height * win.zoomScale))
+                        }
+                    }
+                    onClicked: if (!dragged) mpv.togglePause()
                     onDoubleClicked: { mpv.togglePause(); win.toggleFullscreen() }
-                    onWheel: (w) => mpv.volume = Math.max(0, Math.min(100, mpv.volume + (w.angleDelta.y > 0 ? 5 : -5)))
-                    cursorShape: win.isFull && !win.mouseRecently ? Qt.BlankCursor : Qt.ArrowCursor
+                    onWheel: (w) => {
+                        const up = (w.angleDelta.y || w.angleDelta.x) > 0
+                        if ((w.modifiers & Qt.ControlModifier) && mpv.hasVideo) win.zoomAt(win.zoomScale * (up ? 1.25 : 0.8), w.x, w.y)
+                        else mpv.volume = Math.max(0, Math.min(100, mpv.volume + (up ? 5 : -5)))
+                    }
+                    cursorShape: win.isFull && !win.mouseRecently ? Qt.BlankCursor
+                                 : (win.zoomScale > 1.001 ? (pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor) : Qt.ArrowCursor)
+                }
+                CropGuide {
+                    x: mpv.x; y: mpv.y; width: mpv.width; height: mpv.height
+                    visible: mode > 0 && mpv.loaded && mpv.hasVideo && win.zoomScale < 1.001
+                    mode: win.guideMode
+                    videoWidth: mpv.info.width || 0
+                    videoHeight: mpv.info.height || 0
                 }
 
                 Btn {
@@ -598,7 +666,7 @@ ApplicationWindow {
                                     { icon: "list", tip: "Clips in this folder", keys: "Alt+2", badge: App.queue.length > 1 ? App.queue.length : 0 },
                                     { icon: "info", tip: "Media info", keys: "Alt+3", badge: Media.probe.vfr === true ? -1 : 0 },
                                     { icon: "transcript", tip: "Transcript", keys: "Alt+4", badge: 0 },
-                                    { icon: "scope", tip: "Video scopes", keys: "Alt+5", badge: 0 }
+                                    { icon: "scope", tip: "Scopes and audio meter", keys: "Alt+5", badge: 0 }
                                 ]
                                 delegate: AbstractButton {
                                     id: tabBtn

@@ -10,7 +10,7 @@ Item {
     property real videoWidth: 0
     property real videoHeight: 0
     readonly property var aspects: [0, 9 / 16, 4 / 5, 1]
-    readonly property var names: ["", "9:16  Shorts", "4:5  Feed", "1:1  Square"]
+    readonly property var names: ["", "9:16", "4:5", "1:1"]
     property real offset: 0                   // -1 … 1 across the free space
     onModeChanged: offset = 0
 

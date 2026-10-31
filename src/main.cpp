@@ -150,6 +150,15 @@ public:
              [this] { return !m_win->property("paletteOpen").toBool(); });
         step("play", [this] { m_mpv->setLoop(-1, -1); m_mpv->setPaused(false); m_p0 = m_mpv->position(); },
              [this] { return !m_mpv->paused() && m_mpv->position() > m_p0 + 0.3; });
+        step("audio meter reads levels", [] {}, [this] { const QVariantList l = m_mpv->audioLevels(); return !l.isEmpty() && l.first().toDouble() > -100; }, 4000);
+        step("listen to left channel only", [this] { m_mpv->setListen(1); }, [this] { m_p0 = m_mpv->position(); return m_mpv->listen() == 1; });
+        step("still playing with channel filter", [] {}, [this] { return m_mpv->position() > m_p0 + 0.3 && !m_mpv->audioLevels().isEmpty(); }, 4000);
+        step("both channels again", [this] { m_mpv->setListen(0); }, [this] { return m_mpv->listen() == 0; });
+        step("zoom picture and back", [this] { QMetaObject::invokeMethod(m_win, "setZoom", Q_ARG(QVariant, 2.0), Q_ARG(QVariant, 0.1), Q_ARG(QVariant, 0.0)); },
+             [this] { const bool z = m_mpv->getProperty(QStringLiteral("video-zoom")).toDouble() > 0.9;
+                      if (z) QMetaObject::invokeMethod(m_win, "setZoom", Q_ARG(QVariant, 1.0), Q_ARG(QVariant, 0.0), Q_ARG(QVariant, 0.0));
+                      return z; });
+        step("copy frame to clipboard", [] {}, [this] { return m_mpv->copyFrame() && !QGuiApplication::clipboard()->image().isNull(); });
         step("next file in folder", [this] {
             m_next = m_app->nextInQueue(1);
             QMetaObject::invokeMethod(m_win, "openNext", Q_ARG(QVariant, QVariant(1)));
@@ -255,8 +264,9 @@ public:
             { QStringLiteral("02-clips"), [this] { QMetaObject::invokeMethod(m_win, "cycleGuide"); QMetaObject::invokeMethod(m_win, "cycleGuide"); QMetaObject::invokeMethod(m_win, "cycleGuide"); QTest::mouseMove(m_win, QPoint(600, 300)); call("showTab", 1); }, 2500 },
             { QStringLiteral("03-info"), [this] { call("showTab", 2); }, 800 },
             { QStringLiteral("04-transcript"), [this] { call("showTab", 3); }, 800 },
-            { QStringLiteral("05-scopes"), [this] { call("showTab", 4); }, 1500 },
-            { QStringLiteral("06-palette"), [this] { QMetaObject::invokeMethod(m_win, "openPalette"); }, 800 },
+            { QStringLiteral("05-scopes"), [this] { if (auto *mpv = m_win->findChild<MpvObject *>()) mpv->setPaused(false); call("showTab", 4); }, 1500 },
+            { QStringLiteral("05b-zoom"), [this] { QMetaObject::invokeMethod(m_win, "toggleZoom"); }, 900 },
+            { QStringLiteral("06-palette"), [this] { QMetaObject::invokeMethod(m_win, "toggleZoom"); QMetaObject::invokeMethod(m_win, "openPalette"); }, 800 },
             { QStringLiteral("07-settings"), [this] { QMetaObject::invokeMethod(m_win, "closePalette"); call("openSettings", 0); }, 800 },
             { QStringLiteral("08-shortcuts"), [this] { call("openSettings", 4); }, 800 },
             { QStringLiteral("09-windows"), [this] { call("openSettings", 5); }, 800 },

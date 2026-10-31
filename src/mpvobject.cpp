@@ -1,5 +1,7 @@
 #include "mpvobject.h"
 #include <QDir>
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QStandardPaths>
@@ -144,7 +146,10 @@ public:
                 qWarning("Slate: failed to create mpv OpenGL render context");
             } else {
                 m_core->gl = ctx;
-                m_obj->setRenderContext(ctx);
+                {
+                    QMutexLocker l(&m_core->lock);   // released before mpv can call onRedraw (same lock)
+                    if (m_core->obj) m_core->obj->setRenderContext(ctx);
+                }
                 mpv_render_context_set_update_callback(ctx, onRedraw, m_core.get());
             }
         }
@@ -153,11 +158,15 @@ public:
         return new QOpenGLFramebufferObject(size, fmt);
     }
 
+    // Runs while the GUI thread is blocked, so the item is alive here. render() may run
+    // after the item has been deleted (e.g. ending a comparison), so it must not touch it.
+    void synchronize(QQuickFramebufferObject *item) override { m_win = item->window(); }
+
     void render() override
     {
         if (!m_core->gl)
             return;
-        QQuickWindow *win = m_obj->window();
+        QQuickWindow *win = m_win;
         if (win)
             win->beginExternalCommands();
         QOpenGLFramebufferObject *fbo = framebufferObject();
@@ -175,6 +184,7 @@ public:
 
 private:
     MpvObject *m_obj;
+    QQuickWindow *m_win = nullptr;
     std::shared_ptr<MpvCore> m_core;
 };
 
@@ -226,6 +236,8 @@ MpvObject::MpvObject(QQuickItem *parent) : QQuickFramebufferObject(parent)
     }
     opt("demuxer-max-back-bytes", "150MiB"); // cache behind playhead makes stepping backwards faster
     opt("msg-level", log ? "all=v" : "all=warn");
+    // live level meter: astats tags each audio frame with its peak level, read through af-metadata
+    opt("af", "@slatemeter:lavfi=[astats=metadata=1:reset=1:measure_overall=none]");
     opt("sub-auto", "fuzzy");         // pick up subtitles next to the file
     opt("audio-pitch-correction", "yes");
     // Power users can drop an mpv.conf, input-free scripts or shaders here; Slate's own
@@ -565,6 +577,45 @@ void MpvObject::setSubtitleTrack(int id)
 void MpvObject::addSubtitle(const QString &file)
 {
     command({ QStringLiteral("sub-add"), file, QStringLiteral("select") });
+}
+
+void MpvObject::applyAudioFilters()
+{
+    QByteArray af = "@slatemeter:lavfi=[astats=metadata=1:reset=1:measure_overall=none]";
+    if (m_listen == 1) af += ",@slatelisten:lavfi=[pan=stereo|c0=c0|c1=c0]";
+    else if (m_listen == 2) af += ",@slatelisten:lavfi=[pan=stereo|c0=c1|c1=c1]";
+    mpv_set_property_string(m_mpv, "af", af.constData());
+}
+
+void MpvObject::setListen(int c)
+{
+    c = qBound(0, c, 2);
+    if (c == m_listen) return;
+    m_listen = c;
+    if (m_mpv) applyAudioFilters();
+    emit listenChanged();
+}
+
+QVariantList MpvObject::audioLevels() const
+{
+    QVariantList out;
+    const QVariantMap md = getProperty(QStringLiteral("af-metadata/slatemeter")).toMap();
+    for (int ch = 1; ch <= 8; ++ch) {
+        const QString key = QStringLiteral("lavfi.astats.%1.Peak_level").arg(ch);
+        if (!md.contains(key)) break;
+        bool ok = false;
+        double db = md.value(key).toString().toDouble(&ok);
+        out << (ok ? db : -120.0);
+    }
+    return out;
+}
+
+bool MpvObject::copyFrame()
+{
+    const QImage img = grabFrame(100000);
+    if (img.isNull()) return false;
+    QGuiApplication::clipboard()->setImage(img);
+    return true;
 }
 
 QImage MpvObject::grabFrame(int maxWidth) const

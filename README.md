@@ -49,7 +49,12 @@ Opening another file from Explorer while Slate is open reuses the same window
   Right-click a clip to compare it side by side with the current one.
 - **Media info**: codec, resolution, real frame rate (flags variable frame rate, which causes
   audio drift in editors), colour and HDR, bitrate, and loudness in LUFS against YouTube's −14 LUFS.
-- **Scopes**: luma waveform, RGB parade, histogram and vectorscope.
+- **Scopes and audio meter**: luma waveform, RGB parade, histogram and vectorscope, plus a live
+  left/right peak meter. Listen to the left or right channel alone to check each mic.
+- **Crop guide** (G, or the button by the speed control): a 9:16, 4:5 or 1:1 frame over the picture,
+  draggable sideways, to see if a shot works as a Short. Right-click the button to pick the ratio.
+- **Zoom into the picture**: Ctrl+scroll zooms at the pointer, drag to pan, Z toggles 200% / fit.
+- **Copy frame** (Ctrl+C) to paste a still anywhere.
 - **Transcript**: runs on your computer with whisper.cpp (downloads a speech model the first time).
   Click a line to jump there, search it, save as SRT subtitles or text.
 - **Skip silences** while playing (Ctrl+Shift+K), J/K/L shuttle, 0.25× to 4× with pitch kept.

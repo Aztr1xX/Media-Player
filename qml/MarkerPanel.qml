@@ -192,6 +192,7 @@ Item {
                     SMenuItem { text: "Copy as YouTube chapters"; glyph: "copy"; enabled: App.markers.count > 0; onTriggered: App.copyYouTubeChapters(panel.mpv.duration) }
                     MenuSeparator { contentItem: Rectangle { implicitHeight: 1; color: Theme.line } }
                     SMenuItem { text: "Save current frame (PNG)"; glyph: "camera"; keys: "Ctrl+Shift+S"; enabled: panel.mpv.hasVideo; onTriggered: panel.win.grabFrame() }
+                    SMenuItem { text: "Copy current frame"; glyph: "copy-frame"; keys: "Ctrl+C"; enabled: panel.mpv.hasVideo; onTriggered: panel.win.toast(panel.mpv.copyFrame() ? "Frame copied. Paste it anywhere" : "Couldn't copy this frame") }
                 }
             }
         }

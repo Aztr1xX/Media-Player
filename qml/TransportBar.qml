@@ -121,6 +121,26 @@ Item {
             }
         }
         Btn {
+            id: guideBtn
+            visible: bar.mpv.hasVideo && !bar.compact
+            glyph: "crop"
+            tip: bar.win.guideOn ? "Hide crop guide (right-click for 9:16, 4:5, 1:1)" : "Show " + bar.win.guideNames[bar.win.guideRatio] + " crop guide (right-click for more)"
+            keys: "G"
+            active: bar.win.guideOn
+            enabled: bar.mpv.loaded
+            onClicked: bar.win.toggleGuide()
+            TapHandler { acceptedButtons: Qt.RightButton; onTapped: guideMenu.popup(guideBtn, 0, -guideMenu.implicitHeight - 4) }
+            SMenu {
+                id: guideMenu
+                implicitWidth: 200
+                SMenuItem { text: "Show crop guide"; checkable: true; checked: bar.win.guideOn; keys: "G"; onTriggered: bar.win.toggleGuide() }
+                MenuSeparator { contentItem: Rectangle { implicitHeight: 1; color: Theme.line } }
+                SMenuItem { text: "9:16  Shorts, Reels, TikTok"; checkable: true; checked: bar.win.guideRatio === 1; onTriggered: bar.win.setGuideRatio(1) }
+                SMenuItem { text: "4:5  Instagram feed"; checkable: true; checked: bar.win.guideRatio === 2; onTriggered: bar.win.setGuideRatio(2) }
+                SMenuItem { text: "1:1  Square"; checkable: true; checked: bar.win.guideRatio === 3; onTriggered: bar.win.setGuideRatio(3) }
+            }
+        }
+        Btn {
             id: tracksBtn
             glyph: "subtitles"; tip: "Audio and subtitles"
             enabled: bar.mpv.loaded
