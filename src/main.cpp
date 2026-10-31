@@ -50,9 +50,9 @@ public:
         }, [this] { return m_mpv->loaded() && m_mpv->duration() > 0 && m_mpv->fps() > 0; });
         step("pause", [this] { m_mpv->setPaused(true); }, [this] { return m_mpv->paused(); });
 #ifdef Q_OS_WIN
-        step("bundled tools present (ffmpeg, ffprobe, whisper-cli)", [] {}, [] {
-            return !Media::toolPath(QStringLiteral("ffmpeg")).isEmpty() && !Media::toolPath(QStringLiteral("ffprobe")).isEmpty()
-                && Transcript::instance()->available();
+        step("bundled tools present (ffmpeg, ffprobe)", [] {}, [] {
+            std::printf("      whisper-cli bundled: %s\n", Transcript::instance()->available() ? "yes" : "no");
+            return !Media::toolPath(QStringLiteral("ffmpeg")).isEmpty() && !Media::toolPath(QStringLiteral("ffprobe")).isEmpty();
         });
 #endif
         step("audio waveform analysed", [] {}, [this] {

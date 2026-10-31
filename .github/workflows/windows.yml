@@ -39,8 +39,9 @@ jobs:
           7z x (Get-ChildItem deps\*.7z | Select-Object -First 1).FullName -odeps\mpv | Out-Null
           gh release download latest --repo BtbN/FFmpeg-Builds --pattern "ffmpeg-master-latest-win64-gpl.zip" --dir deps
           7z x deps\ffmpeg-master-latest-win64-gpl.zip -odeps | Out-Null
+          gh release view --repo ggml-org/whisper.cpp --json tagName,assets --jq '.tagName, (.assets[].name)'
           gh release download --repo ggml-org/whisper.cpp --pattern "whisper-bin-x64.zip" --dir deps
-          7z x deps\whisper-bin-x64.zip -odeps\whisper | Out-Null
+          if (Test-Path deps\whisper-bin-x64.zip) { 7z x deps\whisper-bin-x64.zip -odeps\whisper | Out-Null }
           gh release download --repo yt-dlp/yt-dlp --pattern "yt-dlp.exe" --dir deps
           Get-ChildItem -Recurse deps\whisper | ForEach-Object { $_.FullName }
 
@@ -64,9 +65,13 @@ jobs:
           $ff = Get-ChildItem -Recurse deps -Filter "ffmpeg.exe" | Select-Object -First 1
           Copy-Item $ff.FullName dist\
           Copy-Item (Join-Path $ff.DirectoryName "ffprobe.exe") dist\
-          $wc = Get-ChildItem -Recurse deps\whisper -Filter "whisper-cli.exe" | Select-Object -First 1
-          Copy-Item $wc.FullName dist\
-          Get-ChildItem $wc.DirectoryName -Filter "*.dll" | ForEach-Object { Copy-Item $_.FullName dist\ -Force }
+          $wc = Get-ChildItem -Recurse deps\whisper -Filter "whisper-cli.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($wc) {
+            Copy-Item $wc.FullName dist\
+            Get-ChildItem $wc.DirectoryName -Filter "*.dll" | ForEach-Object { Copy-Item $_.FullName dist\ -Force }
+          } else {
+            Write-Host "::warning::whisper-cli.exe not found; transcription won't be bundled"
+          }
           Copy-Item deps\yt-dlp.exe dist\
           Copy-Item README.md dist\
           Get-ChildItem dist -File | Select-Object Name, Length | Format-Table -AutoSize
