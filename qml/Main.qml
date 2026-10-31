@@ -329,7 +329,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 anchors.leftMargin: 14; anchors.rightMargin: 8
                 spacing: 10
-                Image { source: "qrc:/Slate/assets/slate.png"; sourceSize: Qt.size(22, 22); Layout.preferredWidth: 22; Layout.preferredHeight: 22 }
+                Image { source: "qrc:/Slate/assets/slate-small-64.png"; sourceSize: Qt.size(22, 22); Layout.preferredWidth: 22; Layout.preferredHeight: 22 }
                 Column {
                     Layout.fillWidth: true
                     Layout.maximumWidth: 640

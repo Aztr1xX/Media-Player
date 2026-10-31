@@ -63,6 +63,9 @@ qt_add_qml_module(slate
         src/icons.h src/icons.cpp
     RESOURCES
         assets/slate.png
+        assets/slate-256.png
+        assets/slate-small-32.png
+        assets/slate-small-64.png
     QML_FILES
         qml/Main.qml
         qml/Theme.qml

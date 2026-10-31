@@ -10,7 +10,7 @@ Item {
         anchors.centerIn: parent
         width: Math.min(560, parent.width - 48)
         spacing: 0
-        Image { Layout.alignment: Qt.AlignHCenter; source: "qrc:/Slate/assets/slate.png"; sourceSize: Qt.size(64, 64); width: 64; height: 64 }
+        Image { Layout.alignment: Qt.AlignHCenter; source: "qrc:/Slate/assets/slate.png"; sourceSize: Qt.size(88, 88); width: 88; height: 88 }
         Text { Layout.alignment: Qt.AlignHCenter; Layout.topMargin: 16; text: "Open something to review"; color: Theme.ink; font.pixelSize: 20; font.weight: Font.DemiBold }
         Text { Layout.alignment: Qt.AlignHCenter; Layout.topMargin: 6; text: "Drop a clip, audio file or a whole folder anywhere in this window."; color: Theme.ink3; font.pixelSize: Theme.fontBody }
         Row {

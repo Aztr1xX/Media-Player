@@ -316,7 +316,14 @@ int main(int argc, char *argv[])
         }
     }
 
-    app.setWindowIcon(QIcon(QStringLiteral(":/Slate/assets/slate.png")));
+    {
+        // Simplified artwork for small sizes (title bar, taskbar), full artwork from 48 px up.
+        QIcon icon;
+        icon.addFile(QStringLiteral(":/Slate/assets/slate-small-32.png"), QSize(32, 32));
+        icon.addFile(QStringLiteral(":/Slate/assets/slate-256.png"), QSize(256, 256));
+        icon.addFile(QStringLiteral(":/Slate/assets/slate.png"), QSize(512, 512));
+        app.setWindowIcon(icon);
+    }
 #ifdef Q_OS_WIN
     QFont uiFont(QStringLiteral("Segoe UI Variable Text"));
     if (!QFontDatabase::families().contains(uiFont.family())) uiFont.setFamily(QStringLiteral("Segoe UI"));
