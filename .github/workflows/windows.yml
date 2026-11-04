@@ -2,7 +2,16 @@ name: Windows build
 
 on:
   push:
+    # Documentation-only changes don't need a build, and on main they would publish an update to everyone.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
   workflow_dispatch:
 
 permissions:
