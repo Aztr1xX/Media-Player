@@ -11,12 +11,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Aztr1xX/Media-Player/releases/latest/download/Slate-Setup.exe"><img alt="Download for Windows" src="https://img.shields.io/badge/Download-Windows%20installer-4f7cff?style=for-the-badge&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/Aztr1xX/Slate/releases/latest/download/Slate-Setup.exe"><img alt="Download for Windows" src="https://img.shields.io/badge/Download-Windows%20installer-4f7cff?style=for-the-badge&logo=windows&logoColor=white"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Aztr1xX/Media-Player/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Aztr1xX/Media-Player?label=latest&color=7a5cff"></a>
-  <a href="https://github.com/Aztr1xX/Media-Player/actions/workflows/windows.yml"><img alt="Windows build" src="https://img.shields.io/github/actions/workflow/status/Aztr1xX/Media-Player/windows.yml?branch=main&label=build"></a>
+  <a href="https://github.com/Aztr1xX/Slate/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Aztr1xX/Slate?label=latest&color=7a5cff"></a>
+  <a href="https://github.com/Aztr1xX/Slate/actions/workflows/windows.yml"><img alt="Windows build" src="https://img.shields.io/github/actions/workflow/status/Aztr1xX/Slate/windows.yml?branch=main&label=build"></a>
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-555">
   <img alt="Built with" src="https://img.shields.io/badge/built%20with-Qt%206%20%2B%20libmpv-41cd52">
 </p>
@@ -107,7 +107,7 @@ so it opens practically any video or audio format, and uses a modern **Qt 6** in
 
 Slate runs on 64-bit Windows 10 and 11.
 
-1. Download **[Slate-Setup.exe](https://github.com/Aztr1xX/Media-Player/releases/latest/download/Slate-Setup.exe)**.
+1. Download **[Slate-Setup.exe](https://github.com/Aztr1xX/Slate/releases/latest/download/Slate-Setup.exe)**.
 2. Run it. SmartScreen warns because the app isn't code-signed: choose **More info → Run anyway**.
    Pick **Install for me only** (no admin needed) or for all users.
 3. Leave **Make Slate my default video player** ticked on the last page. Windows Settings opens on
@@ -125,7 +125,7 @@ Prefer not to install? Every release also has **Slate-portable.zip**: unzip it a
 
 ### Updates
 
-A few seconds after it starts, Slate checks the [latest release](https://github.com/Aztr1xX/Media-Player/releases/latest)
+A few seconds after it starts, Slate checks the [latest release](https://github.com/Aztr1xX/Slate/releases/latest)
 and downloads anything newer in the background. When it is ready, a **Restart to update** button appears in
 the top bar: Slate closes, installs the update silently and reopens. Settings, markers and ratings are kept.
 Turn off automatic downloads, or check by hand, in **Settings → About**.

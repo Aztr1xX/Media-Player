@@ -2,7 +2,12 @@
 
 Every push to `main` publishes a new release named `1.1.<build number>`, and installed copies of Slate
 update themselves to it. Builds that only fixed the CI are left out below.
-Downloads: [Releases](https://github.com/Aztr1xX/Media-Player/releases).
+Downloads: [Releases](https://github.com/Aztr1xX/Slate/releases).
+
+## 2026-11-04
+- The GitHub repository is now **Aztr1xX/Slate**. The updater checks the new address and follows
+  GitHub's redirect if the name ever changes again.
+- New README with screenshots, plus LICENSE, third-party notices and this changelog.
 
 ## 1.1.12 (2026-10-31)
 - Audio levels moved to their own side tab (Alt + 6).

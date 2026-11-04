@@ -11,7 +11,7 @@
 #include <QTimer>
 #include <QVersionNumber>
 
-static const char *kLatest = "https://api.github.com/repos/Aztr1xX/Media-Player/releases/latest";
+static const char *kLatest = "https://api.github.com/repos/Aztr1xX/Slate/releases/latest";
 
 Updater::Updater(QObject *parent) : QObject(parent) {}
 
@@ -59,6 +59,8 @@ void Updater::check(bool quiet)
     req.setRawHeader("Accept", "application/vnd.github+json");
     req.setRawHeader("User-Agent", "Slate-updater");
     req.setTransferTimeout(15000);
+    // Follow GitHub's redirect if the repository is ever renamed again.
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
     QNetworkReply *r = m_net.get(req);
     connect(r, &QNetworkReply::finished, this, [this, r] {
         r->deleteLater();
